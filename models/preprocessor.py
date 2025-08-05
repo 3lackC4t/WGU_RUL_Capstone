@@ -11,6 +11,7 @@ class Preprocessor:
             self.create_file_list(tests[1]),
             self.create_file_list(tests[2])
         ]
+        self.sample_data = self.tests[0][:3]
 
     @staticmethod
     def create_file_list(test: Path):
@@ -87,10 +88,10 @@ class Preprocessor:
         samples = df.iloc[indices, :]
         return samples
     
-    def build_scaler(self, n_linspace=1000, scalar_type="standard"):
+    def build_scaler(self, tests, n_linspace=1000, scalar_type="standard"):
         all_data_for_scaling = []
         
-        for test_num, test in enumerate(self.tests):
+        for test_num, test in enumerate(tests):
             for file in test:       
                 df = self.get_data_frame_from_text(file, test_num)
                 samples = self.get_samples(df, n_linspace)    
@@ -105,11 +106,11 @@ class Preprocessor:
 
         return scaler
     
-    def build_normalized_data_frames(self, n_linspace=100):
-        tests = []
-        scaler = self.build_scaler()
+    def build_normalized_data_frames(self, tests, n_linspace=1000):
+        all_tests = []
+        scaler = self.build_scaler(tests)
             
-        for test_num, test in enumerate(self.tests):
+        for test_num, test in enumerate(tests):
             all_test_data = []          
             total_test_time = self.get_test_run_time(test, test_num)
             
@@ -141,10 +142,14 @@ class Preprocessor:
 
             print(f"completed building secondary data load {test_num}")
             result_df = pd.DataFrame(all_test_data).reset_index(drop=True)
-            tests.append(result_df)
+            all_tests.append(result_df)
             
         return tests, scaler
     
-    def run_pipeline(self):
-        tests, scaler = self.build_normalized_data_frames()
-        return tests, scaler
+    def run_pipeline(self, testing=False):
+        if not testing:
+            tests, scaler = self.build_normalized_data_frames(self.tests)
+            return tests, scaler
+        else:
+            sample_tests = [self.tests[1]]
+            tests, scaler = self.build_normalized_data_frames(sample_tests)

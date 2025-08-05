@@ -1,4 +1,5 @@
 from keras import Sequential
+from keras.saving import save_model, load_model, save_weights, load_weights
 from keras.layers import (
     Dense,
     LSTM,
@@ -10,8 +11,11 @@ from keras.layers import (
 from keras.regularizers import l2
 
 class Bi_LSTM:
-    def __init__(self):
-        self.model = self.build_BiLSTM_model()
+    def __init__(self, model_path):
+        if not model_path:
+            self.model = self.build_BiLSTM_model()
+        else:
+            self.model = load_model(model_path)
 
     def build_BiLSTM_model(self):
     
@@ -48,3 +52,14 @@ class Bi_LSTM:
         )
         
         return model
+
+    def fit_bi_lstm(self, input, output, X_test, y_test, model_path):
+        self.model.fit(
+            input,
+            output,
+            epochs=3,
+            batch_size=32,
+            validation_data=(X_test, y_test),
+            verbose=1
+        )
+        save_model(model=self.model, filepath=model_path, overwrite=True)
