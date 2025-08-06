@@ -1,82 +1,62 @@
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from models.autoencoder import LSTM_AutoEncoder
 from models.bi_lstm import Bi_LSTM
-from models.preprocessor import Preprocessor
+from models.preprocessor import SensorPreprocessor
 from API.model_API import *
 from settings import Settings
-from time import sleep
-from pathlib import Path
-import threading
-from dataclasses import dataclass
 
 
-def get_features(data):
-    pass
+def check_if_init(settings: Settings):
+    return (
+        settings.AUTO_ENCODER_PATH.exists() and
+        settings.BI_LSTM_PATH.exists() and
+        settings.ENCODER_PATH.exists()
+    )
 
-def predict_on_data(features):
-    # take in features
-    # use preprocessor to turn into windows
-    # take required windows, predict on it
-    # Return it
-    # wait 1 second
-    # repeat 
-    pass
 
-def check_if_model_present(settings: Settings):
-    return (settings.AUTO_ENCODER_PATH).exists(), (settings.BI_LSTM_PATH).exists()
+def initial_build(settings: Settings, testing=False):
+    paths = [
+        settings.DATA_PATH / "1st_test" / "1st_test",
+        settings.DATA_PATH / "2nd_test" / "2nd_test",
+        settings.DATA_PATH / "3rd_test" / "4th_test" / "txt"
+    ]
 
-def initial_build(settings, testing=False):
-    autoencoder_present, lstm_present = check_if_model_present(settings)
-    if not autoencoder_present or lstm_present:
-        paths = [
-            settings.DATA_PATH / "1st_test" / "1st_test",
-            settings.DATA_PATH / "2nd_test" / "2nd_test",
-            settings.DATA_PATH / "3rd_test" / "4th_test" / "txt"
-        ]
-        preprocessor = Preprocessor(paths)
-        tests, scaler = preprocessor.run_pipeline(testing)
+    sensor_preprocessor = SensorPreprocessor(paths)
+    sensor_dict = sensor_preprocessor.test_data
+    sensor_data = [sensor_dict[f'test_{i + 1}']['sensor_data'] for i in range(len(sensor_dict.keys()))]
 
-        all_X, all_y = [], []
+    # Autoencoder goes here
+    # Bi-LSTM goes here
 
-        for test in tests:
-            X = preprocessor.get_windows(test, 16, 2, 'features')
-            y = preprocessor.get_windows(test, 16, 2, 'targets')
-            all_X.extend(X)
-            all_y.extend(y)
+    all_sensor_windows = []
+    all_degradation_windows = []
 
-        X, y = np.array(all_X), np.array(all_y)
+    for test in sensor_data:
+        sensor_column_names = [col for col in test.columns if col.startswith('sensor_')]
+        degradation_values = test['Degradation'].values
+        for sensor_col in sensor_column_names:
+            sensor_values = test[sensor_col].values
 
-        if not autoencoder_present:
-            auto_encoder_builder = LSTM_AutoEncoder()
-            auto_encoder_builder.fit_autoencoder(X, X)
-            autoencoder, encoder = auto_encoder_builder.autoencoder, auto_encoder_builder.encoder
+            sensor_windows = sensor_preprocessor.get_feature_windows(sensor_values) 
+            degradation_windows = sensor_preprocessor.get_target_windows(degradation_values)
 
-        features = encoder.predict(X)
-        windowed_features = preprocessor.get_windows(features, 16, 2, 'features')
-        windowed_targets = preprocessor.get_windows(y, 16, 2, 'targets')
+            all_sensor_windows.extend(sensor_windows)
+            all_degradation_windows.extend(degradation_windows)
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            windowed_features, windowed_targets,
-            test_size=0.2, shuffle=True
-        )
-
-        if not lstm_present:
-            bi_lstm_builder = Bi_LSTM()
-            bi_lstm_builder.fit_bi_lstm(X_train, y_train, X_test, y_test)
-            bi_lstm = bi_lstm_builder.model
-
-        return preprocessor, bi_lstm, autoencoder, encoder
-
-    else:
-        preprocessor = Preprocessor(None)
-        bi_lstm_builder = Bi_LSTM()
-        auto_encoder_builder = LSTM_AutoEncoder()
-        return preprocessor, bi_lstm_builder.model, auto_encoder_builder.autoencoder, auto_encoder_builder.encoder
+    X_all = np.array(all_sensor_windows)
+    y_all = np.array(all_degradation_windows)
 
 def main():
     app_settings = Settings()
-    preprocessor, bi_lstm, autoencoder, encoder = initial_build(settings=app_settings, testing=True)
+    if not check_if_init(app_settings):
+        initial_build(app_settings)
+        main()
+    else:
+        pre_processor = SensorPreprocessor()
+        app.run(debug=True)
+
     # run API
 
     # Main loop is to get data 
