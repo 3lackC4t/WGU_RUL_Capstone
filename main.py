@@ -27,6 +27,7 @@ def initial_build(settings: Settings, testing=False):
     for test in sensor_data:
         sensor_column_names = [col for col in test.columns if col.startswith('sensor_')]
         degradation_values = test['degradation'].values
+
         for sensor_col in sensor_column_names:
             sensor_values = test[sensor_col].values
 
@@ -59,17 +60,14 @@ def initial_build(settings: Settings, testing=False):
 
     features = encoder.predict(X_all)
     print("="*60)
-    print(features.shape)
-    print("="*60)
-    windows_features = sensor_preprocessor.get_feature_windows(features)
-    windows_targets = sensor_preprocessor.get_target_windows(y_all)
-    print("="*60)
-    print(windows_features.shape)
+    print(f"Encoded features shape: {features.shape}")
     print("="*60)
 
+    windows_features = features
+    windows_targets = y_all
 
     X_train, y_train, X_test, y_test = train_test_split(
-        windows_features, y_all, test_size=0.2, shuffle=True
+        windows_features, windows_targets, test_size=0.2, shuffle=True
     )
 
     bi_lstm = Bi_LSTM()

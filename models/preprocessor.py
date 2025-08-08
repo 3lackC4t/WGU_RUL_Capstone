@@ -113,8 +113,7 @@ class SensorPreprocessor:
 
         for i in range(0, len(arr) - self.window_size, self.stride):
             y_window = arr[i + self.window_size -1]
-            target_array = [y_window for _ in range(self.window_size)]
-            y_windows.append(target_array)
+            y_windows.append(y_window)
         
         y = np.array(y_windows)
         return y

@@ -11,7 +11,7 @@ from keras.layers import (
 from keras.regularizers import l2
 
 class Bi_LSTM:
-    def __init__(self, model_path):
+    def __init__(self, model_path=None):
         if not model_path:
             self.model = self.build_BiLSTM_model()
         else:
