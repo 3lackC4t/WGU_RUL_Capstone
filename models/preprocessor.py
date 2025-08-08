@@ -8,7 +8,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 class SensorPreprocessor:
 
-    def __init__(self, tests, proportion=0.10, window_size=32, stride=16, final_output_dim=(32, 1), init_build=True):
+    def __init__(self, tests, proportion=0.10, window_size=64, stride=32, final_output_dim=(32, 1), init_build=True):
         self.final_output_dim = final_output_dim
         self.window_size = window_size
         self.stride = stride 
@@ -100,7 +100,7 @@ class SensorPreprocessor:
         print(f"creating {len(arr) // self.window_size} windows")
 
         for i in range(0, len(arr) - self.window_size, self.stride):
-            X_window = arr.iloc[i:i+self.window_size]
+            X_window = arr[i:i+self.window_size]
 
             X_windows.append(X_window)
         
@@ -112,9 +112,9 @@ class SensorPreprocessor:
         print(f"creating {len(arr) // self.window_size} windows")
 
         for i in range(0, len(arr) - self.window_size, self.stride):
-            y_window = arr.iloc[i + self.window_size -1]
-
-            y_windows.append(y_window)
+            y_window = arr[i + self.window_size -1]
+            target_array = [y_window for _ in range(self.window_size)]
+            y_windows.append(target_array)
         
         y = np.array(y_windows)
         return y

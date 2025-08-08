@@ -3,17 +3,17 @@ from keras import Sequential
 from keras.saving import save_model, load_model, save_weights, load_weights
 from keras import Input, Model
 from keras.layers import (
-    LSTM,
-    Dense,
-    Dropout,
-    RepeatVector
+    Conv1D,
+    MaxPooling1D,
+    GlobalAveragePooling1D,
+    Reshape,
+    UpSampling1D,
 )
 
 
-class LSTM_AutoEncoder:
-    def __init__(self, model_file_ae, model_file_encoder, input_dim=(16, 4), latent_dim=(32)):
+class AutoEncoder:
+    def __init__(self, model_file_ae=None, model_file_encoder=None, input_dim=64):
         self.input_dim = input_dim
-        self.latent_dim = latent_dim
         
         if model_file_ae:
             self.autoencoder = load_model(model_file_ae)
@@ -23,33 +23,35 @@ class LSTM_AutoEncoder:
             self.autoencoder, self.encoder = self.build_lstm_autoencoder()
 
     def build_lstm_autoencoder(self):
-        encoder_input = Input(shape=self.input_dim)
+        encoder_input = Input(shape=(self.input_dim,))
+
+        reshaped = Reshape((self.input_dim, 1))(encoder_input)
         
         # Encoder
-        encoder = Sequential([
-            LSTM(128, return_sequences=True),
-            Dropout(0.3),
-            LSTM(64, return_sequences=True),
-            Dropout(0.2),
-            Dense(self.latent_dim)
-        ])
+        x = Conv1D(32, 7, activation='relu', padding='same')(reshaped)
+        x = MaxPooling1D(2)(x) # 32 -> 16
+        x = Conv1D(16, 5, activation='relu', padding='same')(x)
+        x = MaxPooling1D(2)(x) # 16 -> 8
+        encoded = GlobalAveragePooling1D()(x)
 
         # Decoder
-        decoder = Sequential([
-            RepeatVector(self.input_dim[0]),
-            LSTM(64, return_sequences=True),
-            Dropout(0.2),
-            LSTM(128, return_sequences=True)
-        ])
+
+        x = Conv1D(8, 3, activation='relu', padding='same')(x)
+        x = UpSampling1D(2)(x) # 8 -> 16
+        x = Conv1D(16, 5, activation='relu', padding='same')(x)
+        x = UpSampling1D(2)(x) # 16 -> 32
+        x = Conv1D(32, 7, activation='relu', padding='same')(x)
+        decoded = Conv1D(1, 1, activation='linear', padding='same')(x)
+        decoded = Reshape((self.input_dim,))(decoded)
         
-        autoencoder = Model(encoder.input, decoder.ouput)
-        encoder = Model(encoder_input, encoder.output)
+        autoencoder = Model(encoder_input, decoded)
+        encoder = Model(encoder_input, encoded)
 
         autoencoder.compile(optimizer="adam", loss='mse', metrics=['mae'])
 
         return autoencoder, encoder
 
-    def fit_autoencoder(self, input, output, model_path):
+    def fit_autoencoder(self, input, output, model_path_ae, model_path_encoder):
         self.autoencoder.fit(
             input,
             output,
@@ -58,4 +60,5 @@ class LSTM_AutoEncoder:
             validation_split=0.2,
             verbose=1
         )
-        save_model(model=self.autoencoder, filepath=model_path, overwrite=True)
+        self.autoencoder.save(model_path_ae)
+        self.encoder.save(model_path_encoder)
