@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from models.autoencoder import AutoEncoder
 from models.bi_lstm import Bi_LSTM
@@ -46,16 +45,13 @@ def initial_build(settings):
     print("="*60)
     
     if not settings.AUTO_ENCODER_PATH.exists() or  not settings.ENCODER_PATH.exists():
-        new_autoencoder = AutoEncoder()
-        new_autoencoder.fit_autoencoder(
-            X_all, X_all,
-            settings.AUTO_ENCODER_PATH,
-            settings.ENCODER_PATH
-        )
+        new_autoencoder = AutoEncoder(new_model=True, model_path=settings.AUTO_ENCODER_PATH, model_path_encoder=settings.ENCODER_PATH)
+        new_autoencoder.fit_model(X_all, X_all)
     else:
-        new_autoencoder = AutoEncoder(settings.AUTO_ENCODER_PATH, settings.ENCODER_PATH)
+        new_autoencoder = AutoEncoder(new_model=False, model_path=settings.AUTO_ENCODER_PATH, model_path_encoder=settings.ENCODER_PATH)
 
-    auto_encoder, encoder = new_autoencoder.autoencoder, new_autoencoder.encoder
+    print("Predicting on encoder input")
+    encoder = new_autoencoder.encoder
 
     features = encoder.predict(X_all)
     print("="*60)
@@ -65,6 +61,7 @@ def initial_build(settings):
     windows_features = features
     windows_targets = y_all
 
+    # Reshape input for CNN 
     if len(windows_features.shape) == 2:
         windows_features = windows_features.reshape(windows_features.shape[0], 1, windows_features.shape[1]) 
 
@@ -73,12 +70,12 @@ def initial_build(settings):
     )
 
     if not settings.BI_LSTM_PATH.exists():
-        new_bi_lstm = Bi_LSTM()
-        new_bi_lstm.fit_bi_lstm(X_train, y_train, X_test, y_test, settings.BI_LSTM_PATH)
+        new_bi_lstm = Bi_LSTM(model_path=settings.BI_LSTM_PATH, new_model=True)
+        new_bi_lstm.fit_model(X_train, y_train, X_test, y_test)
         bi_lstm = new_bi_lstm.model
     else:
-        new_bi_lstm = Bi_LSTM(settings.BI_LSTM_PATH)
-        bi_lstm = new_bi_lstm.model()
+        new_bi_lstm = Bi_LSTM(model_path=settings.BI_LSTM_PATH, new_model=False)
+        bi_lstm = new_bi_lstm.model
 
     return sensor_preprocessor, bi_lstm, encoder
 
@@ -87,10 +84,10 @@ def get_models(settings):
         preproccesor, bi_lstm, encoder = initial_build(settings)
         return preproccesor, bi_lstm, encoder
     else:
-        new_autoencoder = AutoEncoder(settings.AUTO_ENCODER_PATH, settings.ENCODER_PATH)
-        new_bi_lstm = Bi_LSTM(settings.BI_LSTM_PATH)
+        loaded_autoencoder = AutoEncoder(model_path=settings.AUTO_ENCODER_PATH, model_path_encoder=settings.ENCODER_PATH, new_model=False)
+        loaded_bi_lstm = Bi_LSTM(model_path=settings.BI_LSTM_PATH, new_model=False)
          
-        encoder =  new_autoencoder.encoder
-        bi_lstm = new_bi_lstm.model
-        preproccesor = SensorPreprocessor(settings.TEST_PATHS)
+        encoder =  loaded_autoencoder.encoder
+        bi_lstm = loaded_bi_lstm.model
+        preproccesor = SensorPreprocessor(init_build=False)
         return preproccesor, bi_lstm, encoder

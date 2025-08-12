@@ -33,9 +33,11 @@ class AutoEncoder(Model):
         reshaped = Reshape((self.input_shape, 1))(encoder_input)
         
         # Encoder
-        x = Conv1D(32, 7, activation='relu', padding='same')(reshaped)
+        x = Conv1D(64, 7, activation='relu', padding='same')(reshaped)
+        x = MaxPooling1D(2)(x) # 64 -> 32
+        x = Conv1D(32, 5, activation='relu', padding='same')(x)
         x = MaxPooling1D(2)(x) # 32 -> 16
-        x = Conv1D(16, 5, activation='relu', padding='same')(x)
+        x = Conv1D(16, 3, activation='relu', padding='same')(x)
         x = MaxPooling1D(2)(x) # 16 -> 8
         encoded = GlobalAveragePooling1D()(x)
 
@@ -46,6 +48,8 @@ class AutoEncoder(Model):
         x = Conv1D(16, 5, activation='relu', padding='same')(x)
         x = UpSampling1D(2)(x) # 16 -> 32
         x = Conv1D(32, 7, activation='relu', padding='same')(x)
+        x = UpSampling1D(2)(x)
+
         decoded = Conv1D(1, 1, activation='linear', padding='same')(x)
         decoded = Reshape((self.input_shape,))(decoded)
         

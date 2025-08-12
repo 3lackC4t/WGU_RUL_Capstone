@@ -4,8 +4,7 @@ from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 class SensorPreprocessor:
-
-    def __init__(self, tests, proportion=0.50, window_size=64, stride=32, final_output_dim=(32, 1), init_build=True):
+    def __init__(self, tests=None, proportion=0.05, window_size=64, stride=32, final_output_dim=(32, 1), init_build=True):
         self.final_output_dim = final_output_dim
         self.window_size = window_size
         self.stride = stride 
