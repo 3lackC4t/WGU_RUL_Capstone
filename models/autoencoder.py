@@ -1,4 +1,6 @@
+from models.model import Model
 from keras.saving import load_model
+from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from keras import Input, Model
 from keras.layers import (
     Conv1D,
@@ -9,21 +11,26 @@ from keras.layers import (
 )
 
 
-class AutoEncoder:
-    def __init__(self, model_file_ae=None, model_file_encoder=None, input_dim=64):
-        self.input_dim = input_dim
-        
-        if model_file_ae:
-            self.autoencoder = load_model(model_file_ae)
-        if model_file_encoder:     
-            self.encoder = load_model(model_file_encoder) 
+class AutoEncoder(Model):
+    def __init__(self, input_shape=64, epochs=100, batch_size=32, model_path=None, new_model=True, model_path_encoder=None):
+        super().__init__(input_shape, epochs, batch_size, model_path, new_model)
+        self.model_path_encoder = model_path_encoder
+        self.callbacks = [
+            ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-7, vebose=1),
+            EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=1)
+        ]
+
+        if model_path:
+            self.autoencoder = load_model(model_path)
+        if model_path_encoder:     
+            self.encoder = load_model(model_path_encoder) 
         else: 
             self.autoencoder, self.encoder = self.build_lstm_autoencoder()
 
-    def build_lstm_autoencoder(self):
-        encoder_input = Input(shape=(self.input_dim,))
+    def build_and_compile_model(self):
+        encoder_input = Input(shape=(self.input_shape,))
 
-        reshaped = Reshape((self.input_dim, 1))(encoder_input)
+        reshaped = Reshape((self.input_shape, 1))(encoder_input)
         
         # Encoder
         x = Conv1D(32, 7, activation='relu', padding='same')(reshaped)
@@ -40,7 +47,7 @@ class AutoEncoder:
         x = UpSampling1D(2)(x) # 16 -> 32
         x = Conv1D(32, 7, activation='relu', padding='same')(x)
         decoded = Conv1D(1, 1, activation='linear', padding='same')(x)
-        decoded = Reshape((self.input_dim,))(decoded)
+        decoded = Reshape((self.input_shape,))(decoded)
         
         autoencoder = Model(encoder_input, decoded)
         encoder = Model(encoder_input, encoded)
@@ -49,14 +56,14 @@ class AutoEncoder:
 
         return autoencoder, encoder
 
-    def fit_autoencoder(self, input, output, model_path_ae, model_path_encoder):
+    def fit_model(self, model_input, model_output):
         self.autoencoder.fit(
-            input,
-            output,
-            epochs=1,
-            batch_size=64,
+            model_input,
+            model_output,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
             validation_split=0.2,
             verbose=1
         )
-        self.autoencoder.save(model_path_ae)
-        self.encoder.save(model_path_encoder)
+        self.autoencoder.save(self.model_path)
+        self.encoder.save(self.model_path_encoder)
