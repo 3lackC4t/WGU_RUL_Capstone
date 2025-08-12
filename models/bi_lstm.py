@@ -1,5 +1,5 @@
 from keras import Sequential
-from keras.saving import save_model, load_model, save_weights, load_weights
+from keras.saving import save_model, load_model
 from keras.layers import (
     Dense,
     LSTM,
@@ -47,7 +47,7 @@ class Bi_LSTM:
         
         model.compile(
             optimizer="adam", 
-            loss='huber', 
+            loss='binary_crossentropy', 
             metrics=['mae', 'mse']
         )
         
@@ -57,8 +57,8 @@ class Bi_LSTM:
         self.model.fit(
             input,
             output,
-            epochs=3,
-            batch_size=32,
+            epochs=1,
+            batch_size=64,
             validation_data=(X_test, y_test),
             verbose=1
         )

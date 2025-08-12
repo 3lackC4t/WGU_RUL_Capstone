@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bearing Life Predictor</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/styles.css')}}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Bearing Life Predictor</h1>
+            <p>Upload vibrational data to predict remaining bearing life</p>
+        </header>
+
+        <div class="card">
+            <form class="data-input-form" id="vib-data-form" enctype="multipart/form-data">
+                <fieldset class="form-fieldset">
+                    <div class="form-group">
+                        <label for="vib-file">Vibrational Data File</label>
+                        <input type="file" id="vib-file" name="vib-file" accept=".csv,.txt" required>
+                        <small style="color: var(--color-text-muted); font-size: 0.85rem;">
+                            Supported formats: CSV, TXT
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="button" class="btn btn-outline toggle-btn" id="advanced-l10-btn">
+                            Advanced L10 Calculation
+                        </button>
+                        
+                        <fieldset class="form-fieldset" id="L10-form-fieldset">
+                            <div class="form-group">
+                                <label for="vib-life-span">Rated Bearing Lifespan (L10)</label>
+                                <input type="number" id="vib-life-span" name="vib-life-span" 
+                                       step="1" min="0" placeholder="e.g. 1900000">
+                                <small style="color: var(--color-text-muted); font-size: 0.85rem;">
+                                    Enter L10 rating in revolutions
+                                </small>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bearing-rpm">Operating RPM</label>
+                        <input type="number" id="bearing-rpm" name="bearing-rpm" 
+                               step="1" min="1" placeholder="e.g. 1800" required>
+                        <small style="color: var(--color-text-muted); font-size: 0.85rem;">
+                            Expected rotational speed in RPM
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: var(--space-lg); font-size: 1.1rem;">
+                        <span class="submit-text">Analyze Bearing Data</span>
+                        <span class="submit-loading" style="display: none;">
+                            <span class="spinner"></span> Processing...
+                        </span>
+                    </button>
+                </fieldset>
+            </form>
+        </div>
+
+        <!-- Results Section (initially hidden) -->
+        <div class="results-section" id="results-section" style="display: none;">
+            <div class="result-card">
+                <h3>Prediction Results</h3>
+                <div class="result-metric">
+                    <span class="result-label">Health Factor</span>
+                    <span class="result-value" id="health-factor">-</span>
+                </div>
+                <div class="result-metric">
+                    <span class="result-label">Remaining Revolutions</span>
+                    <span class="result-value" id="remaining-revolutions">-</span>
+                </div>
+                <div class="result-metric">
+                    <span class="result-label">Estimated Time (Hours)</span>
+                    <span class="result-value" id="remaining-hours">-</span>
+                </div>
+                <div class="result-metric">
+                    <span class="result-label">Estimated Time (Days)</span>
+                    <span class="result-value" id="remaining-days">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Section (initially hidden) -->
+        <div class="error-section" id="error-section" style="display: none;">
+            <div class="error-card">
+                <h3>Analysis Failed</h3>
+                <p id="error-message">An error occurred during analysis. Please check your input data and try again.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{url_for('static', filename='js/script.js')}}"></script>
+</body>
+</html>

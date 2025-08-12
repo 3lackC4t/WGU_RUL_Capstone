@@ -1,18 +1,20 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-
-from settings import Settings
-
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 class SensorPreprocessor:
 
-    def __init__(self, tests, proportion=0.10, window_size=64, stride=32, final_output_dim=(32, 1), init_build=True):
+    def __init__(self, tests, proportion=0.50, window_size=64, stride=32, final_output_dim=(32, 1), init_build=True):
         self.final_output_dim = final_output_dim
         self.window_size = window_size
         self.stride = stride 
-        self.tests = tests
+
+        if not init_build:
+            self.tests = None
+        else:
+            self.tests = tests
+        
         self.test_data = {}
         
         if init_build:
@@ -25,7 +27,7 @@ class SensorPreprocessor:
                     'total_run_time': total_time,
                     'indices': indices,
                     'sensor_data': self.get_bulk_arrays(files, total_time, indices, idx+1)
-                } 
+                }
          
     @staticmethod
     def create_file_list(test: Path):
@@ -117,7 +119,47 @@ class SensorPreprocessor:
         
         y = np.array(y_windows)
         return y
-    
-    def get_sensor_frame(self, test_num):
-        sensor_training_data = []
+
+    def apply_scaling_on_input(self, data: pd.DataFrame, scalar_type: str = 'standard'):
+        if scalar_type == 'standard':
+            scaler = StandardScaler()
+        elif scalar_type == 'minmax':
+            scaler = MinMaxScaler()
+
+        scaled_data = data.copy()
+        scaled_data = scaler.fit_transform(data)
+
+        return scaled_data
+
+    def get_cleaned_input(self, file_object, file_type, rpm=1000):
+        if file_type == 'txt':
+            raw_data = pd.DataFrame(np.loadtxt(file_object, comments='#', delimiter=None))
+            all_sensors = []
+            print(f"Data Type: {type(raw_data)}")
+            print(f"Data Shape: {raw_data.shape}")
+            if len(raw_data.columns) > 1:
+                for col in raw_data.columns:
+                    single_raw_data = raw_data.loc[:, col].to_frame()
+                    
+                    print(f"Data Type: {type(single_raw_data)}")
+                    print(f"Data Shape: {single_raw_data.shape}")
+                    
+                    scaled_single_raw_data = self.apply_scaling_on_input(single_raw_data)
+                    windows = []
+                    for i in range(0, len(scaled_single_raw_data) - self.window_size, self.stride):
+                        window = scaled_single_raw_data[i:i + self.window_size]
+                        windows.append(window)
+                    
+                    all_sensors.append(np.array(windows))
+
+            else:
+                scaled_data = self.apply_scaling_on_input(raw_data)
+                windows = []
+                for i in range(0, len(scaled_data) - self.window_size, self.stride):
+                    window = scaled_data[i:i + self.window_size]
+                    windows.append(window)
+
+                all_sensors.append(np.array(windows))
+
+            return all_sensors
 

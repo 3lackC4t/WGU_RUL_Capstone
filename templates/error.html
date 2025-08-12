@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Bearing Life Predictor</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/styles.css')}}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 style="color: var(--color-error);">Analysis Error</h1>
+            <p>Something went wrong during the bearing analysis</p>
+        </header>
+
+        <div class="error-card">
+            <h3>Unable to Process Request</h3>
+            <p>There was an error processing your vibrational data. This could be due to:</p>
+            <ul style="margin: var(--space-md) 0; padding-left: var(--space-lg);">
+                <li>Invalid file format or corrupted data</li>
+                <li>Missing required form fields</li>
+                <li>Server processing error</li>
+            </ul>
+            <p>Please check your input and try again.</p>
+            
+            <a href="/" class="btn btn-primary" style="margin-top: var(--space-lg);">
+                Return to Analysis
+            </a>
+        </div>
+    </div>
+</body>
+</html>

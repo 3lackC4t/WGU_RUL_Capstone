@@ -1,6 +1,4 @@
-import keras
-from keras import Sequential
-from keras.saving import save_model, load_model, save_weights, load_weights
+from keras.saving import load_model
 from keras import Input, Model
 from keras.layers import (
     Conv1D,
@@ -55,8 +53,8 @@ class AutoEncoder:
         self.autoencoder.fit(
             input,
             output,
-            epochs=3,
-            batch_size=32,
+            epochs=1,
+            batch_size=64,
             validation_split=0.2,
             verbose=1
         )
