@@ -1,5 +1,5 @@
 class BaseModel:
-    def __init__(self, input_shape, epochs=100, batch_size=32, model_path=None, new_model=True):
+    def __init__(self, input_shape, epochs=100, batch_size=128, model_path=None, new_model=True):
         self.input_shape = input_shape
         self.epochs = epochs
         self.batch_size = batch_size

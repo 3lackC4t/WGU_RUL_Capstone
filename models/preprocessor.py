@@ -4,7 +4,7 @@ from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 class SensorPreprocessor:
-    def __init__(self, tests=None, proportion=0.01, window_size=256, stride=128, final_output_dim=(32, 1), init_build=True):
+    def __init__(self, tests=None, proportion=0.05, window_size=256, stride=128, final_output_dim=(32, 1), init_build=True):
         self.final_output_dim = final_output_dim
         self.window_size = window_size
         self.stride = stride 
@@ -51,7 +51,7 @@ class SensorPreprocessor:
 
     @staticmethod  
     def get_degradation(time_until_failure, total_test_time):
-        return 1 - (time_until_failure / total_test_time) ** 2
+        return (time_until_failure / total_test_time)
     
     def get_indices(self, file_list, proportion):
         n_files = len(file_list)
