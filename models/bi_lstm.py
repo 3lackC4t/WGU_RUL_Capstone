@@ -1,4 +1,4 @@
-from models.model import Model
+from models.model import BaseModel
 from keras import Sequential
 from keras.saving import save_model, load_model
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping
@@ -12,8 +12,8 @@ from keras.layers import (
 
 from keras.regularizers import l2
 
-class Bi_LSTM(Model):
-    def __init__(self, input_shape, epochs=100, batch_size=32, model_path=None, new_model=True):
+class Bi_LSTM(BaseModel):
+    def __init__(self, input_shape, epochs=100, batch_size=128, model_path=None, new_model=True):
         super().__init__(input_shape, epochs, batch_size, model_path, new_model)
         
         self.callbacks = [
@@ -21,7 +21,7 @@ class Bi_LSTM(Model):
             EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=1)
         ]
 
-        if not new_model:
+        if new_model and model_path:
             self.model = self.build_and_compile_model()
         else:
             self.model = load_model(model_path)

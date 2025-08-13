@@ -4,7 +4,7 @@ from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 class SensorPreprocessor:
-    def __init__(self, tests=None, proportion=0.05, window_size=64, stride=32, final_output_dim=(32, 1), init_build=True):
+    def __init__(self, tests=None, proportion=0.01, window_size=256, stride=128, final_output_dim=(32, 1), init_build=True):
         self.final_output_dim = final_output_dim
         self.window_size = window_size
         self.stride = stride 
@@ -79,9 +79,7 @@ class SensorPreprocessor:
 
         print(f"complete with test {test_num}")
 
-        scaled_data, scaler = self.apply_scaling(bulk_data, 'standard')
-
-        return scaled_data
+        return bulk_data
     
     def apply_scaling(self, data: pd.DataFrame, scalar_type: str = 'standard'):
         sensor_columns = [col for col in data.columns if col.startswith("sensor_")]
@@ -94,7 +92,7 @@ class SensorPreprocessor:
         scaled_data = data.copy()
         scaled_data[sensor_columns] = scaler.fit_transform(data[sensor_columns])
 
-        return scaled_data, scaler
+        return scaled_data
 
     def get_feature_windows(self, arr):
         X_windows = []
