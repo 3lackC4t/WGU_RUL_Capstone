@@ -20,9 +20,6 @@ class HealthPredictor:
             # Model is already trained, load model from memory and return it.
             pass
 
-    def get_status(self, error) -> tuple[str, float]:
-        pass
-
     def run_initial_training_build(self, test_paths: list) -> None:
         complete_healthy_windows = []
         complete_damaged_windows = []
@@ -68,8 +65,10 @@ class HealthPredictor:
         self.auto_encoder.train_model(X_train, X_test)
         self.baseline_error = self.auto_encoder.get_error(X_train)
 
-    def get_mean_squared_error(self, predicted_error) -> float:
-        pass
+    def get_mean_squared_error(self, predicted_errors) -> float:
+        return float(np.mean(predicted_errors))
+    
+    def get_status(self)
 
     def handle_input_data(self, data_file) -> dict[str:any]:
         # Load raw input data 
@@ -83,18 +82,28 @@ class HealthPredictor:
             sensor_data = raw_input_data[:, col]
 
             # Window the data
-            input_data_windows = self.preprocessor.get_input_windows(sensor_data)
+            input_data_windows = self.preprocessor.get_windows(sensor_data)
 
             # use the autoencoder to get the error from the data
-            predicted_error = self.auto_encoder.get_error(input_data_windows)
+            predicted_errors = self.auto_encoder.get_errors(input_data_windows)
 
             # MSE
-            sensor_mse = self.get_mean_squared_error(predicted_error)
-            status = self.get_status(sensor_mse)
+            sensor_mse = self.get_mean_squared_error(predicted_errors)
+            status, health_score = self.get_status(sensor_mse)
 
             # Create JSON-able return dictionary
             all_sensor_data[f'sensor_{sensor_idx}'] = {
                 'status': status,
-                'sensor_mse': sensor_mse
+                'health_score': health_score,
+                'sensor_mse': sensor_mse,
+                'num_windows': len(input_data_windows),
+                'error_statistics': {
+                    'mean': sensor_mse,
+                    'std': float(np.std(predicted_errors)),
+                    'max': float(np.max(predicted_errors)),
+                    'min': float(np.min(predicted_errors))
+                }
             }
+
+            return all_sensor_data
 
