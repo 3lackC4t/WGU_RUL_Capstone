@@ -8,7 +8,8 @@ class HealthPredictor:
     def __init__(self, initial_training=True, test_paths=None):
         self.auto_encoder = AutoEncoder()
         self.preprocessor = Preprocessor()
-        self.base_line_error = None
+        self.baseline_error = None
+        self.error_threshold = None
 
         if initial_training:
             if test_paths:
@@ -26,16 +27,20 @@ class HealthPredictor:
         complete_healthy_windows = []
         complete_damaged_windows = []
 
-        for test_idx, test in enumerate(test_paths):
+        for test_idx, test_path in enumerate(test_paths):
+            print(f"\nProcessing test {test_idx + 1}: {test_path}")
 
             # Get complete file list form test
-            files = self.preprocessor.create_file_list(test)
+            files = self.preprocessor.create_file_list(test_path)
+            print(f"Found {len(files)} files for test {test_idx + 1}")
 
             # Calculate total time in seconds of the run
             test_run_time = self.preprocessor.get_test_run_time(files, test_idx)
+            print(f"Test run time: {test_run_time:..2}")
 
             # using preprocessors proportion, get the sample file indices that will be used
             indices = self.preprocessor.get_indices(files)
+            print(f"Number of samples: {len(indices)}")
 
             # Use the base pipeline to create the healthy and damaged windows for this test
             test_healthy_windows, test_damaged_windows = self.preprocessor.bearing_test_data_pipeline(
@@ -46,16 +51,22 @@ class HealthPredictor:
             complete_healthy_windows.extend(test_healthy_windows)
             complete_damaged_windows.extend(test_damaged_windows)
 
+
+
         # Create complete, universal, 1D healthy sensor data
         # training data should be much larger than test_data
         training_data = np.array(complete_healthy_windows)
         test_data = np.array(complete_damaged_windows)
 
+        # Normalize training and test data
+        X_train = self.preprocessor.get_scaled_data(training_data)
+        X_test = self.preprocessor.get_scaled_data(test_data)
+
         # Train the autoencoder on the healthy data and extract the baseline error for the healthy data,
         # this is the threshold for a "healthy" bearing, deviation from this is the degree to which the bearing
         # is degraded
-        self.auto_encoder.train_model(training_data, test_data)
-        self.base_line_error = self.auto_encoder.get_error(training_data)
+        self.auto_encoder.train_model(X_train, X_test)
+        self.baseline_error = self.auto_encoder.get_error(X_train)
 
     def get_mean_squared_error(self, predicted_error) -> float:
         pass
