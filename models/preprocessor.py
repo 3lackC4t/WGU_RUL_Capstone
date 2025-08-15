@@ -4,8 +4,7 @@ from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 class SensorPreprocessor:
-    def __init__(self, tests=None, proportion=0.05, window_size=256, stride=128, final_output_dim=(32, 1), init_build=True):
-        self.final_output_dim = final_output_dim
+    def __init__(self, tests=None, proportion=0.1, window_size=512, stride=256, init_build=True):
         self.window_size = window_size
         self.stride = stride 
 
@@ -51,9 +50,10 @@ class SensorPreprocessor:
 
     @staticmethod  
     def get_degradation(time_until_failure, total_test_time):
-        return (time_until_failure / total_test_time)
-    
-    def get_indices(self, file_list, proportion):
+        return 1 - (time_until_failure / total_test_time) ** 2
+
+    @staticmethod 
+    def get_indices(file_list, proportion):
         n_files = len(file_list)
         indices = np.linspace(0, n_files-1, int(n_files*proportion))
         return indices.astype(int)
@@ -80,6 +80,55 @@ class SensorPreprocessor:
         print(f"complete with test {test_num}")
 
         return bulk_data
+    
+    def simple_data_pipeline(self, files, total_test_time, indices, test_num):
+        """
+        The simple data pipeline aims to treat all of the data from the tests as though there is just one bearing.
+        Inputs: 
+            files: a list of all files in a test directory
+            total_test_time: The total amount of time that the test ran, used to calculate degradation
+            indices: The sample of files from that test that is being used
+            test_num: used for time until failure and degradation calculation, the first test had several quirks,
+            see NASA Bearing vibrational dataset documentation
+
+        Returns:
+            all_healthy_windows: np.array containing healthy bearing data only
+            all_damaged_windows: np.array containing windows that are considered 'unhealthy'
+        """
+        all_healthy_windows = []
+        all_damaged_windows = []
+
+        for file_idx in indices:
+            # Get the time until failure
+            time_until_failure = self.get_time_until_failure(total_test_time, file_idx, test_num)
+
+            # Using a custom degradation calculation to capture healthy bearing data 
+            degradation = self.get_degradation(time_until_failure, total_test_time)
+            
+            # Raw data from file
+            data = np.loadtxt(files[file_idx])
+
+            for col in data.columns:
+                # Grab each column from the raw data
+                sensor_data = data[:, col]
+
+                # Window the sensor_data
+                windows = []
+
+                # Simple sliding window
+                for i in range(0, len(sensor_data) - self.window_size, self.stride):
+                    window = sensor_data[i:i+self.window_size]
+                    windows.append(window)
+
+                # Split the data into the healthy and unhealthy sets, the unhealthy set is our test set
+                # Unhealthy in this case is considered the "Second half" of the bearings life. See get_degradation for details
+                if degradation <= 0.5:
+                    all_healthy_windows.append(windows)
+                else:
+                    all_damaged_windows.append(windows)
+
+        return np.array(all_healthy_windows), np.array(all_damaged_windows)
+
     
     def apply_scaling(self, data: pd.DataFrame, scalar_type: str = 'standard'):
         sensor_columns = [col for col in data.columns if col.startswith("sensor_")]

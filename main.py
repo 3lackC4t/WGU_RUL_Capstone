@@ -2,7 +2,6 @@ from flask import Flask, request, render_template, jsonify
 from werkzeug.utils import secure_filename
 from dataclasses import dataclass
 from pathlib import Path
-from models import model_init
 
 @dataclass
 class Settings:
@@ -24,7 +23,6 @@ class Settings:
 app = Flask(__name__)
 app_settings = Settings()
 app.config['UPLOAD_FOLDER'] = app_settings.FILE_DATA_PATH
-PREPROCESSOR, BI_LSTM, ENCODER =  model_init.get_models(app_settings)
 
 
 def allowed_file(filename: str):
@@ -89,6 +87,7 @@ def feed_input_data() -> float:
             except IOError:
                 pass
             return "Unable to read file", 500
+
 
 def main():
     app.run(debug=True)

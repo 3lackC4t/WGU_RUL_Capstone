@@ -1,6 +1,5 @@
 from models.model import BaseModel
 from keras.saving import load_model
-from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from keras import Input, Model
 from keras.layers import (
     Conv1D,
@@ -15,13 +14,9 @@ from keras.layers import (
 
 
 class AutoEncoder(BaseModel):
-    def __init__(self, input_shape=256, epochs=100, batch_size=128, model_path=None, new_model=True, model_path_encoder=None):
+    def __init__(self, input_shape=512, epochs=100, batch_size=256, model_path=None, new_model=True, model_path_encoder=None):
         super().__init__(input_shape, epochs, batch_size, model_path, new_model)
         self.model_path_encoder = model_path_encoder
-        self.callbacks = [
-            ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-7, vebose=1),
-            EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=1)
-        ]
 
         if not new_model and model_path:
             self.autoencoder = load_model(model_path)
@@ -32,13 +27,19 @@ class AutoEncoder(BaseModel):
 
     def build_and_compile_model(self):
         encoder_input = Input(shape=(self.input_shape,), name='input')
-        encoded = Dense(256, activation='relu')(encoder_input)
+        encoded = Dense(512, activation='relu')(encoder_input)
+        encoded = Dropout(0.3)(encoded)
+        encoded = Dense(256, activation='relu')(encoded)
+        encoded = Dropout(0.2)(encoded)
         encoded = Dense(128, activation='relu')(encoded)
+        encoded = Dropout(0.1)(encoded)
 
         encoded_final = Dense(64, activation='relu')(encoded)
 
         decoded = Dense(128, activation='relu')(encoded_final)
-        decoded = Dense(256, activation='sigmoid')(decoded)
+        decoded = Dense(256, activation='relu')(decoded)
+        decoded = Dense(512, activation='linear')(decoded)
+
 
         autoencoder = Model(encoder_input, decoded)
         autoencoder.compile(
