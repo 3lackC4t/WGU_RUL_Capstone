@@ -210,3 +210,5 @@ __marimo__/
 # Training data
 bearing_data/
 model_data/
+models/__pycache__/autoencoder.cpython-313.pyc
+models/__pycache__/preprocessor.cpython-313.pyc
