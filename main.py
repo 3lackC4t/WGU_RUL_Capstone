@@ -3,14 +3,15 @@ from werkzeug.utils import secure_filename
 from dataclasses import dataclass
 from pathlib import Path
 
+from models.health_predictor import HealthPredictor
+
 @dataclass
 class Settings:
     # File Paths
     FILE_PATH = Path(__file__).parent.absolute()
-    MODEL_DATA_PATH = FILE_PATH / "models" / "model_data"
-    BI_LSTM_PATH = MODEL_DATA_PATH / "bi_lstm.keras"
+    MODEL_DATA_PATH = FILE_PATH / "model_data"
+    REFERENCE_DATA_PATH = MODEL_DATA_PATH / "reference_data.npy"
     AUTO_ENCODER_PATH = MODEL_DATA_PATH / "autoencoder.keras"
-    ENCODER_PATH = MODEL_DATA_PATH / "encoder.keras"
     DATA_PATH = FILE_PATH / "bearing_data"
     FILE_DATA_PATH = DATA_PATH / "file_data"
     ALLOWED_EXTENSIONS = {'txt', 'csv'}
@@ -23,6 +24,12 @@ class Settings:
 app = Flask(__name__)
 app_settings = Settings()
 app.config['UPLOAD_FOLDER'] = app_settings.FILE_DATA_PATH
+health_predictor = HealthPredictor(
+    model_file_path=app_settings.AUTO_ENCODER_PATH,
+    reference_data_path=app_settings.REFERENCE_DATA_PATH,
+    initial_training=False if app_settings.AUTO_ENCODER_PATH.exists() else True,
+    test_paths=app_settings.TEST_PATHS
+)
 
 
 def allowed_file(filename: str):
@@ -65,25 +72,9 @@ def feed_input_data() -> float:
 
             try:
                 with open(app_settings.FILE_DATA_PATH / filename) as f:
-                    if filename.split('.')[-1].lower() == 'csv':
-                        cleaned_data = PREPROCESSOR.get_cleaned_input(f, 'csv', bearing_rpm)
-                    else:
-                        cleaned_data = PREPROCESSOR.get_cleaned_input(f, 'txt', bearing_rpm)
+                    health_status = health_predictor.handle_input_data(f)
+                    return jsonify(health_status), 201
 
-                sensors = {}
-                for idx, sensor in enumerate(cleaned_data):
-                    print(f"Sensor Type: {type(sensor)}")
-                    print(f"Sensor Shape: {sensor.shape}")
-                    encoder_predictions = ENCODER.predict(sensor)
-                    reshaped_predictions = encoder_predictions.reshape(encoder_predictions.shape[0], 1, encoder_predictions.shape[1])
-                    health_prediction_raw = BI_LSTM.predict(reshaped_predictions)
-                    mean_prediction = float(health_prediction_raw.mean())
-                    sensors[f"sensor_{idx}"] = mean_prediction * life_span
-
-                return jsonify({
-                    'message': "Prediction returned succesfully",
-                    'sensor_data': sensors
-                }), 201
             except IOError:
                 pass
             return "Unable to read file", 500
