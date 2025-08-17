@@ -5,6 +5,8 @@ from pathlib import Path
 
 from models.health_predictor import HealthPredictor
 
+from models.health_predictor import HealthPredictor
+
 @dataclass
 class Settings:
     # File Paths
@@ -30,6 +32,7 @@ health_predictor = HealthPredictor(
     initial_training=False if app_settings.AUTO_ENCODER_PATH.exists() else True,
     test_paths=app_settings.TEST_PATHS
 )
+health_predictor = HealthPredictor()
 
 
 def allowed_file(filename: str):
