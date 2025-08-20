@@ -7,6 +7,28 @@
     <link rel="stylesheet" href="{{url_for('static', filename='css/styles.css')}}">
 </head>
 <body>
+    <div class="navbar">
+        
+        <!-- Hamburger Button -->
+        <div class="nav-toggle">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+
+        <!-- Navigation Menu -->
+       <ul>
+            <li class="nav-item">
+                <a class="link" id="data-link" href="{{ url_for('data_input') }}"></a>
+            </li>
+            <li class="nav-item">
+                <a class="link" id="about-link" href="{{ url_for('about') }}"></a>
+            </li>
+            <li class="nav-item">
+                <a class="link" id="git-link" href="https://github.com/3lackC4t"></a>
+            </li>
+       </ul> 
+    </div>
     <div class="container">
         <header class="header">
             <h1>Bearing Life Predictor</h1>
@@ -29,6 +51,7 @@
                             Advanced L10 Calculation
                         </button>
                         
+                        <!-- This block determines if using a straight L10 input or calculating our own -->
                         <fieldset class="form-fieldset" id="L10-form-fieldset">
                             <div class="form-group">
                                 <label for="vib-life-span">Rated Bearing Lifespan (L10)</label>
@@ -60,30 +83,10 @@
             </form>
         </div>
 
-        <!-- Results Section (initially hidden) -->
         <div class="results-section" id="results-section" style="display: none;">
-            <div class="result-card">
-                <h3>Prediction Results</h3>
-                <div class="result-metric">
-                    <span class="result-label">Health Factor</span>
-                    <span class="result-value" id="health-factor">-</span>
-                </div>
-                <div class="result-metric">
-                    <span class="result-label">Remaining Revolutions</span>
-                    <span class="result-value" id="remaining-revolutions">-</span>
-                </div>
-                <div class="result-metric">
-                    <span class="result-label">Estimated Time (Hours)</span>
-                    <span class="result-value" id="remaining-hours">-</span>
-                </div>
-                <div class="result-metric">
-                    <span class="result-label">Estimated Time (Days)</span>
-                    <span class="result-value" id="remaining-days">-</span>
-                </div>
-            </div>
+            <!-- Empty initially, will be filled by bearing predictions-->
         </div>
 
-        <!-- Error Section (initially hidden) -->
         <div class="error-section" id="error-section" style="display: none;">
             <div class="error-card">
                 <h3>Analysis Failed</h3>

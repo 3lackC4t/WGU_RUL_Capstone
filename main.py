@@ -149,6 +149,9 @@ autoencoder, preprocessor, reference_data = model_init()
 def home():
     return render_template('data_input.html')
 
+@app.route('/about', method=['GET'])
+def about():
+    return render_template('about.html')
 
 @app.route('/api/input', methods=['POST', 'GET'])
 def predict():

@@ -12,18 +12,34 @@ let vibPrediction = null;
 function showResults(data) {
     // Hide error section
     errorSection.style.display = 'none';
-    
-    // Calculate additional metrics
-    const rpm = parseInt(document.getElementById('bearing-rpm').value);
-    const remainingHours = data.RUL / (rpm * 60);
-    const remainingDays = remainingHours / 24;
-    
-    // Update result values
-    document.getElementById('health-factor').textContent = data.health_factor || 'N/A';
-    // TODO: This needs to handle multiple sensors in the sensor_data header
-    document.getElementById('remaining-revolutions').textContent = Math.round(data.RUL).toLocaleString();
-    document.getElementById('remaining-hours').textContent = remainingHours.toFixed(1);
-    document.getElementById('remaining-days').textContent = remainingDays.toFixed(1);
+    resultsSection.innerHTML = '';
+
+    Object.entries(data).forEach(([bearingName, bearingObject]) => {
+        const bearingData = data[bearingName]
+
+        const bearingStatus = getHealthClass(bearingData.health_score);
+
+        const bearingCard = document.createElement('div')
+        bearingCard.className = 'bearing-card'
+        bearingCard.innerHTML = `
+            <h3>${bearingName.replace('_', ' ').toUpperCase()}</h3>
+            <div class="bearing-metrics">
+                <p>Health Score: <span class="health-score">${bearingData.health_score}</span></p>
+                <p>Status: <span class="bearing-status">${bearingStatus}</span></p>
+            </div>
+        `;
+
+        if (bearingName != 'mse') {
+            resultsSection.appendChild(bearingCard)
+        }
+    })
+
+    function getHealthClass(healthScore) {
+        if (healthScore >= 70) return 'Health-Good';
+        if (healthScore >= 50) return 'Health-Moderate';
+        if (healthScore >= 30) return 'Health-Low';
+        return 'Health-Critical';
+    }
     
     // Show results section
     resultsSection.style.display = 'block';
@@ -152,7 +168,7 @@ vibDataForm.addEventListener('submit', async (event) => {
         if (response.ok) {
             console.log('SUCCESS:', result);
             // TODO: Needs to be sensor_data
-            vibPrediction = result.RUL;
+            vibPrediction = result;
             showResults(result);
         } else {
             console.error('ERROR:', result);
