@@ -45,10 +45,27 @@ class Autoencoder:
 
     def fit(self, data) -> None:
         if self.model:
-            self.model.fit(
+            history = self.model.fit(
                 data, data,
                 batch_size=self.batch_size,
                 epochs=self.epochs,
                 callbacks=self.callbacks,
                 verbose=1
             ) 
+
+            return history
+        
+    def predict_on_input(self, input_data):
+        return self.model.predict(input_data)
+        
+    def save_model(self, model_path) -> None:
+        try:
+            self.model.save(model_path.as_posix())
+        except FileNotFoundError or FileExistsError as e:
+            print(f"Failed to save model to {model_path} [{e}]")
+
+    def load_model(self, model_path) -> None:
+        try:
+            self.model = ks.saving.load_model(model_path.as_posix())
+        except FileNotFoundError or FileExistsError as e:
+            print(f"Failed to load model to {model_path} [{e}]")

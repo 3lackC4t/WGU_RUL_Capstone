@@ -21,6 +21,7 @@ class NASABearingPreprocessor:
         self.stride = int(window_size * (1 - overlap))
         self.scalar_type = scaler_type
         self.health_threshold = health_threshold
+        self.reference_threshold = None
         self.extract_features = extract_features
 
         self.scalar = self._get_scalar(scaler_type)
@@ -291,11 +292,33 @@ class NASABearingPreprocessor:
 
         return processed_data, degradation
     
+    def process_input_file(self, file_path: Path) -> np.ndarray:
+        print(f"Received file at {file_path}")
+        data = np.loadtxt(file_path)
+        columns = data.shape[1]
+
+        processed_data = {}
+
+        for bearing_idx in range(columns):
+            bearing_name = f"bearing_{bearing_idx + 1}"
+            signal = data[:, bearing_idx]
+
+            processed_signal = self.process_signal(signal)
+
+            if self.is_fitted:
+                processed_signal = self.transform(processed_signal)
+            else:
+                raise ValueError("Preprocessor must be fitted before processing")
+            
+            processed_data[bearing_name] = processed_signal
+
+        return processed_data
+    
     def process_test_data(
             self,
             test_path: Path,
             test_num: int,
-            sample_proportion: float = 0.1,
+            sample_proportion: float = 0.5,
             specific_bearings: List[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray, Dict]:
         
@@ -350,7 +373,7 @@ class NASABearingPreprocessor:
     def process_multiple_tests(
         self,
         test_paths: List[Tuple[Path, int]],
-        sample_proportion: float = 0.1
+        sample_proportion: float = 0.5
     ) -> Tuple[np.ndarray, np.ndarray, List[Dict]]:
 
         print("Called self.process_multiple_tests") 
@@ -414,3 +437,58 @@ class NASABearingPreprocessor:
 
         return self.feature_names
     
+    def save_data(self, file_path: Path, data: np.ndarray) -> None:
+        np.save(file_path, data)
+
+    def save_preprocessor(self, file_path: Path) -> None:
+        import pickle
+
+        if not self.is_fitted:
+            raise ValueError("Preprocessor must be fitted before saving")
+        
+        state = {
+            'scaler': self.scalar,
+            'feature_names': self.feature_names,
+            'is_fitted': self.is_fitted,
+            'window_size': self.window_size,
+            'overlap': self.overlap,
+            'stride': self.stride,
+            'health_threshold': self.health_threshold,
+            'extract_features': self.extract_features,
+            'reference_threshold': self.reference_threshold,
+            'config': self.config
+        }
+
+        with open(file_path, 'wb') as f:
+            pickle.dump(state, f)
+
+        print(f"Preprocessor saved to {file_path}")
+
+    def load_preprocessor(self, file_path: Path):
+        import pickle
+
+        with open(file_path, 'rb') as f:
+            state = pickle.load(f)
+
+        self.scalar = state['scaler']
+        self.feature_names = state['feature_names']
+        self.is_fitted = state['is_fitted']
+        self.window_size = state['window_size']
+        self.overlap = state['overlap']
+        self.stride = state['stride']
+        self.health_threshold = state['health_threshold']
+        self.extract_features = state['extract_features']
+        self.reference_threshold = state['reference_threshold']
+        self.config = state['config']
+
+        print(f"Preprocessor loaded from {file_path}")
+
+    def load_data(self, file_path) -> np.ndarray:
+        reference_mse =  np.load(file_path)
+        self.calculate_threshold(reference_mse)
+    
+    def get_error_mse(self, input_a: np.ndarray, input_b: np.ndarray) -> np.ndarray:
+        return np.mean((input_a - input_b) ** 2, axis=1)
+
+    def calculate_threshold(self, reference_mse) -> np.ndarray:
+        self.reference_threshold = np.percentile(reference_mse, 95) 
