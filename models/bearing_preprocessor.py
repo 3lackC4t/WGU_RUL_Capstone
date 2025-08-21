@@ -13,7 +13,7 @@ class NASABearingPreprocessor:
         self, window_size: int = 2048, 
         overlap: float = 0.5,
         scaler_type: str = 'standard',
-        health_threshold: float = 0.5,
+        health_threshold: float = 0.6,
         extract_features: bool = True
     ):
         self.window_size = window_size
@@ -325,8 +325,12 @@ class NASABearingPreprocessor:
         files = self.create_file_list(test_path)
         total_files = len(files)
 
-        n_samples = max(1, int(total_files * sample_proportion))
-        sample_indices = np.linspace(0, total_files - 1, n_samples).astype(int)
+        if sample_proportion < 1.0:
+            n_samples = max(1, int(total_files * sample_proportion))
+            sample_indices = np.linspace(0, total_files - 1, n_samples).astype(int)
+        else:
+            n_samples = total_files
+            sample_indices = np.arange(total_files)
 
         print(f"Processing test {test_num}: {n_samples}/{total_files} files")
 

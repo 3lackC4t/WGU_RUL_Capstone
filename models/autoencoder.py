@@ -1,13 +1,24 @@
 import keras as ks
 
 class Autoencoder:
-    def __init__(self, input_dim, epochs=100, batch_size=32):
+    def __init__(self, input_dim, epochs=200, batch_size=32):
         self.input_dim = input_dim
         self.epochs = epochs
         self.batch_size = batch_size
         self.callbacks = [
-            ks.callbacks.ReduceLROnPlateau(),
-            ks.callbacks.EarlyStopping()
+            ks.callbacks.ReduceLROnPlateau(
+                monitor='loss',
+                factor=0.5,
+                patience=5,
+                min_lr=1e-6,
+                verbose=1
+            ),
+            ks.callbacks.EarlyStopping(
+                monitor='loss',
+                patience=10,
+                restore_best_weights=True,
+                verbose=1
+            )
         ]
         self.model = None
 
@@ -15,23 +26,20 @@ class Autoencoder:
 
         encoder_input = ks.layers.Input((self.input_dim,), name="encoder_input_layer")
 
-        x = ks.layers.Dense(128, activation='relu')(encoder_input)
+        x = ks.layers.Dense(128, activation="relu")(encoder_input)
         x = ks.layers.BatchNormalization()(x)
-        x = ks.layers.Dropout(0.3)(x)
 
-        x = ks.layers.Dense(64, activation='relu')(x)
+        x = ks.layers.Dense(64, activation="relu")(x)
         x = ks.layers.BatchNormalization()(x)
-        x = ks.layers.Dropout(0.2)(x)
 
-        x = ks.layers.Dense(32, activation='relu')(x)
+        x = ks.layers.Dense(32, activation="relu")(x)
         x = ks.layers.BatchNormalization()(x)
-        x = ks.layers.Dropout(0.1)(x)
 
-        bottle_neck = ks.layers.Dense(16, activation='relu')(x)
+        bottle_neck = ks.layers.Dense(16, activation="relu")(x)
 
-        decoded = ks.layers.Dense(32, activation='relu')(bottle_neck)
-        decoded = ks.layers.Dense(64, activation='relu')(decoded)
-        decoded = ks.layers.Dense(128, activation='relu')(decoded)
+        decoded = ks.layers.Dense(32, activation="relu")(bottle_neck)
+        decoded = ks.layers.Dense(64, activation="relu")(decoded)
+        decoded = ks.layers.Dense(128, activation="relu")(decoded)
         decoded = ks.layers.Dense(self.input_dim, activation='linear')(decoded)
 
         autoencoder = ks.models.Model(encoder_input, decoded)

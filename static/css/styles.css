@@ -57,6 +57,16 @@ body {
     min-height: 100vh;
 }
 
+a {
+    text-decoration: none;
+}
+
+ul {
+  list-style-type: none; /* Remove bullets */
+  padding: 0; /* Remove padding */
+  margin: 0; /* Remove margins */
+}
+
 /* Layout */
 .container {
     max-width: 800px;
@@ -89,6 +99,19 @@ body {
     border-radius: var(--border-radius);
     padding: var(--space-xl);
     margin-bottom: var(--space-lg);
+}
+
+.about-card {
+    background-color: var(--color-background-secondary);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-xl);
+    margin-bottom: var(--space-lg);
+
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    justify-content: space-between;
 }
 
 /* Forms */
@@ -299,4 +322,46 @@ input[type="submit"] {
     margin-top: 0;
     text-align: center;
     color: var(--color-text-primary);
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: #333;
+}
+
+.nav-brand a {
+    color: white;
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+ul.link-list {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+li .link {
+    color: var(--color-text-secondary);
+}
+
+.model-visuals {
+    border: 1px solid var(--color-border);
+}
+
+.text-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+}
+
+.about-card#about-two .text-container {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: right;
 }

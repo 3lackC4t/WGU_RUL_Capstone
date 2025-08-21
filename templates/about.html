@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bearing Life Predictor</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/styles.css')}}">
+</head>
+<body>
+    <div class="navbar">
+
+        <!-- Navigation Menu -->
+       <ul class="link-list">
+            <li class="nav-item">
+                <a class="link" id="data-link" href="{{ url_for('data_input') }}">Analysis</a>
+            </li>
+            <li class="nav-item">
+                <a class="link" id="git-link" href="https://github.com/3lackC4t">Git</a>
+            </li>
+       </ul> 
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>About the Bearing Life Predictor</h1>
+            <p>A Brief description of its design and implementation</p>
+        </header>
+        <div class="about-card" id="about-one">
+            <div class="text-container">
+                <h4>Heading One</h4>
+                <p class="about-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. In praesentium adipisci quasi voluptatem magni debitis, aperiam autem nostrum, aut odio, exercitationem necessitatibus quod? Harum unde voluptatibus eos, similique blanditiis eius.</p>
+            </div>
+            <img src="{{ url_for('static', filename='images/plot_1_rms_comparison.png') }}" alt="RMS Comparison" style="width: 75%; max-width: 850px; height: auto;" class="model-visuals">
+        </div>
+        <div class="about-card" id="about-two">
+            <img src="{{ url_for('static', filename='images/plot_2_signal_waveforms.png') }}" alt="Waveform Comparison" style="width: 75%; max-width: 850px; height: auto;" class="model-visuals">
+            <div class="text-container">
+                <h4>Heading Two</h4>
+                <p class="about-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Laborum sit ullam beatae explicabo unde, officia modi hic minima. Nisi voluptas, natus id rem est ipsam voluptatem. Tenetur itaque natus delectus.</p>
+            </div>
+        </div>
+        <div class="about-card" id="about-three">
+            <div class="text-container">
+                <h4>Heading Three</h4>
+                <p class="about-text">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Neque impedit voluptatem reiciendis suscipit aliquam corrupti culpa ullam reprehenderit ipsam, odio libero deleniti consectetur, dolore dolores nisi numquam! Obcaecati, harum error.</p>
+            </div>
+            <img src="{{ url_for('static', filename='images/plot_3_model_performance.png') }}" alt="Model Performance" style="width: 75%; max-width: 850px; height: auto;" class="model-visuals">
+        </div>
+    </div>
+
+    <script src="{{url_for('static', filename='js/script.js')}}"></script>
+</body>
+</html>

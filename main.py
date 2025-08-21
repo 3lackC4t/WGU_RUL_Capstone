@@ -34,7 +34,7 @@ def model_init() -> None:
         window_size=2048,
         overlap=0.5,
         scaler_type='standard',
-        health_threshold=0.5,
+        health_threshold=0.6,
         extract_features=True
     )
 
@@ -49,7 +49,7 @@ def model_init() -> None:
         input_dim = preprocessor.get_feature_dim()
         autoencoder = Autoencoder(
             input_dim=input_dim,
-            epochs=100,
+            epochs=200,
             batch_size=32
         )
 
@@ -68,7 +68,7 @@ def model_init() -> None:
         
         healthy_data, degraded_data, metadata = preprocessor.process_multiple_tests(
             test_paths,
-            sample_proportion=0.5
+            sample_proportion=1.0
         )
         print("="*60)
         print(f"\nHealthy Data Shape: {healthy_data.shape}\nDegraded Data Shape: {degraded_data.shape}\n")
@@ -146,10 +146,10 @@ autoencoder, preprocessor, reference_data = model_init()
 
 
 @app.route('/', methods=['GET', 'POST'])
-def home():
+def data_input():
     return render_template('data_input.html')
 
-@app.route('/about', method=['GET'])
+@app.route('/about', methods=['GET'])
 def about():
     return render_template('about.html')
 
