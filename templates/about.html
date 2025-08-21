@@ -20,31 +20,33 @@
        </ul> 
     </div>
 
-    <div class="container">
+    <div class="container-about">
         <header class="header">
             <h1>About the Bearing Life Predictor</h1>
             <p>A Brief description of its design and implementation</p>
         </header>
         <div class="about-card" id="about-one">
             <div class="text-container">
-                <h4>Heading One</h4>
-                <p class="about-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. In praesentium adipisci quasi voluptatem magni debitis, aperiam autem nostrum, aut odio, exercitationem necessitatibus quod? Harum unde voluptatibus eos, similique blanditiis eius.</p>
+                <h4>Features and Data</h4>
+                <p class="about-text">The <em>Bearing Life Predictor</em> utilizes the NASA Bearing Dataset in order to extract key timing and frequency based vibrational data. The raw data is processed by extracting features, windowing, and normalizing the data to a standard scaler for model training. This data is then passed through a 'degradation' calculation that is used to determine if the bearing signal is early or late in life. The healthy bearing data will be used for model training.</p>
+                <p>The <em>Root Mean Square</em> or RMS is one of the most telling features that can be extracted from the data. Shown to the right, it can be seen that the difference between the RMS of healthy bearings vice degraded bearings is quite stark which forms the backbone of our data selection and training strategy.</p>
             </div>
-            <img src="{{ url_for('static', filename='images/plot_1_rms_comparison.png') }}" alt="RMS Comparison" style="width: 75%; max-width: 850px; height: auto;" class="model-visuals">
+            <img src="{{ url_for('static', filename='images/plot_1_rms_comparison.png') }}" alt="RMS Comparison"  class="model-visuals" onclick="window.open(this.src, '_blank')">
         </div>
         <div class="about-card" id="about-two">
-            <img src="{{ url_for('static', filename='images/plot_2_signal_waveforms.png') }}" alt="Waveform Comparison" style="width: 75%; max-width: 850px; height: auto;" class="model-visuals">
+            <img src="{{ url_for('static', filename='images/plot_2_signal_waveforms.png') }}" alt="Waveform Comparison"  class="model-visuals" onclick="window.open(this.src, '_blank')">
             <div class="text-container">
-                <h4>Heading Two</h4>
-                <p class="about-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Laborum sit ullam beatae explicabo unde, officia modi hic minima. Nisi voluptas, natus id rem est ipsam voluptatem. Tenetur itaque natus delectus.</p>
+                <h4>Model Architecture</h4>
+                <p class="about-text">As can be seen in the accompanying figure; their is a clear difference in signal amplitude and phase from healthy and degraded bearings, this relationship will be taken advantage of by the model. The model consists of a dense autoencoder that will be trained on healthy bearing data. The autoencoder will be intentionally overfitted on healthy data and be assessed on it's ability to recreate raw healthy bearing data. This will result in a model that is very effective at recreating healthy bearing data, but very innacurate at recreating unhealthy bearing data.</p>
             </div>
         </div>
         <div class="about-card" id="about-three">
             <div class="text-container">
-                <h4>Heading Three</h4>
-                <p class="about-text">Lorem ipsum dolor sit, amet consectetur adipisicing elit. Neque impedit voluptatem reiciendis suscipit aliquam corrupti culpa ullam reprehenderit ipsam, odio libero deleniti consectetur, dolore dolores nisi numquam! Obcaecati, harum error.</p>
+                <h4>Implementation</h4>
+                <p class="about-text">After training the model is used to determine the health of a bearing. This is done by using the autoencoder model to attempt to recreate ingested vibrational data. As it is only trained on healthy data this will result in a relatively small amount of error in the prediction (calculated by way of the difference between the mean of the prediction and the original data) and a large amount of error for unhealthy bearing data.</p>
+                <p>This relative error is used to calculate a 'bearing health score' a value between 0 to 1. This is then used to estimate the remaining number of revlutions and remaining useful life of the bearing.</p>
             </div>
-            <img src="{{ url_for('static', filename='images/plot_3_model_performance.png') }}" alt="Model Performance" style="width: 75%; max-width: 850px; height: auto;" class="model-visuals">
+            <img src="{{ url_for('static', filename='images/plot_3_model_performance.png') }}" alt="Model Performance"  class="model-visuals" onclick="window.open(this.src, '_blank')">
         </div>
     </div>
 
