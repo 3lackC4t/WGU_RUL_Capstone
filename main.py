@@ -125,7 +125,6 @@ def handle_input(input_file: Path) -> Dict['str', float]:
         mse = preprocessor.get_error_mse(processed_data, reconstruction)
         result[bearing_name]['mse_raw'] = list(mse)
         result[bearing_name]['mse_mean'] = float(np.mean(mse))
-        result[bearing_name]['mse_max'] = float(np.max(mse))
 
         if preprocessor.reference_threshold is not None:
             # Detect anomalies
@@ -136,11 +135,16 @@ def handle_input(input_file: Path) -> Dict['str', float]:
 
             # Health score 
             health_score = preprocessor.calculate_health_score(mse)
-            result[bearing_name]['health_score'] = health_score
+            result[bearing_name]['health_score'] = float(np.mean(health_score))
             print(f"    Average health: {np.mean(health_score):.1f}%")
 
             health_status = get_bearing_status(mse, preprocessor)
             result[bearing_name]['health_status'] = health_status
+
+    for bearing, bearing_data in result.items():
+        print(bearing)
+        for metric, value in bearing_data.items():
+            print(f"{metric}: {type(value)}")
 
     return result
 

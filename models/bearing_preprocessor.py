@@ -109,15 +109,17 @@ class NASABearingPreprocessor:
     
     def calculate_degradation(self, time_until_failure: float, total_test_time: float, degradation_calculation_method: str) -> float:
 
+        health_ratio = time_until_failure / total_test_time if total_test_time > 0 else 0
+
         if degradation_calculation_method == 'linear':
-            degradation = time_until_failure / total_test_time
+            degradation = health_ratio
         elif degradation_calculation_method == 'semi_linear':
-            if time_until_failure <= 0.5 * total_test_time:
-                degradation = 1
+            if health_ratio >= 0.5:
+                degradation = 1.0
             else:
-                degradation = time_until_failure / total_test_time
+                degradation = health_ratio * 2
         elif degradation_calculation_method == 'non_linear':
-            degradation = 1 - (time_until_failure / total_test_time) ** 2
+            degradation = health_ratio ** 2
         
         return degradation
     
@@ -504,12 +506,4 @@ class NASABearingPreprocessor:
 
     def calculate_health_score(self, mse: np.ndarray) -> float:
         if hasattr(self, 'reference_mean') and hasattr(self, 'reference_std'):
-            z_scores = (mse - self.reference_mean) / (self.reference_std + 1e-8)
-
-            z_scores = np.clip(z_scores, -3, 10)
-
-            health = 100 * np.exp(-z_scores / 2)
-
-            return np.clip(health, 0, 100)
-        else:
             return 100 * np.clip(1 - mse / (self.reference_threshold * 2), 0, 1)
