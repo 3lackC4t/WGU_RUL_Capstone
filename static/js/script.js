@@ -16,12 +16,14 @@ function createNominalDegradationData() {
     
     for (let i = 0; i <= points; i++) {
         labels.push(i);
+
         // Exponential degradation curve
         values.push((1 - (i / 100) ** 2) * 100);
     }
     
     return { labels, values };
 }
+
 
 function createActualHealthData(currentHealth) {
     const points = 100;
@@ -38,45 +40,79 @@ function createActualHealthData(currentHealth) {
     return data;
 }
 
+
+function toggleCharts(chartContainer) {
+    let chartStatus = chartContainer.classList[0];
+    if (chartStatus == "chart-hidden") {
+        chartContainer.classList.remove('chart-hidden');
+        chartContainer.classList.add('chart-shown');
+    } else {
+        chartContainer.classList.remove('chart-shown');
+        chartContainer.classList.add('chart-hidden');
+    }
+}
+
+
 function showResults(data) {
     // Hide error section
     errorSection.style.display = 'none';
     resultsSection.innerHTML = '';
 
-    const rawMse = data['mse-raw']
+    const rawMse = data['mse_raw']
     const mse = data['mse']
 
     Object.entries(data).forEach(([bearingName, bearingObject]) => {
         
         const bearingData = data[bearingName]
         const bearingStatus = getHealthClass(bearingData.health_score);
+        const healthColor = getStatusColor(bearingStatus)
         const bearingCard = document.createElement('div')
         
         if (bearingName.startsWith("bearing_")) {
-            const healthChartElement = document.createElement('canvas')
+            const healthChartElement = document.createElement('canvas');
             healthChartElement.id = `health-chart-${bearingName}`;
             healthChartElement.style.maxHeight = '300px';
-
-
+           
+            const mseChartElement = document.createElement('canvas');
+            mseChartElement.id = `mse-chart-${bearingName}`;
+            mseChartElement.style.maxHeight = '300px';
 
             bearingCard.className = 'bearing-card'
             bearingCard.innerHTML = `
                 <h3>${bearingName.replace('_', ' ').toUpperCase()}</h3>
                 <div class="bearing-metrics">
-                    <p>Health Score: <span class="health-score">${bearingData.health_score}</span></p>
-                    <p>Status: <span class="bearing-status">${bearingStatus}</span></p>
+                    <p>Health Score: <span class="health-score">${Number.parseFloat(bearingData.health_score).toFixed(2)}</span>%</p>
+                    <p>Status: <span class="bearing-status" style="color: ${healthColor}">${bearingStatus}</span></p>
                 </div>
+                <button class="chart-toggle-button" id="toggle-chart-${bearingName}">Show Charts</button>
             `;
 
-            bearingCard.appendChild(healthChartElement)
+
+
+            const chartContainer = document.createElement('div')
+
+            chartContainer.appendChild(healthChartElement)
+            chartContainer.appendChild(mseChartElement)
+
+            chartContainer.classList.add('chart-hidden')
+
+            bearingCard.appendChild(chartContainer)
             resultsSection.appendChild(bearingCard)
 
-            let context = healthChartElement.getContext('2d');
+            const toggleChartButton = document.getElementById(`toggle-chart-${bearingName}`)
+            toggleChartButton.addEventListener('click', () => {
+                toggleCharts(chartContainer)
+            })
+
+            let healthChartContext = healthChartElement.getContext('2d');
+            let mseChartContext = mseChartElement.getContext('2d')
+
             const degradationData = createNominalDegradationData()
+            const mseData = bearingData.mse_raw.slice(0, 100)
 
             let actualHealthXValue = Math.sqrt(1 - (bearingData.health_score / 100)) * 100
 
-            let healthChart = new Chart(context, {
+            let healthChart = new Chart(healthChartContext, {
                 type: 'line',
                 data: {
                     labels: degradationData.labels,
@@ -124,6 +160,57 @@ function showResults(data) {
                     }
                 }
             });
+
+            let mseChart = new Chart(mseChartContext, {
+                type: 'line',
+                data: {
+                    labels: mseData.map((_, i) => i),
+                    datasets: [{
+                        label: 'MSE',
+                        data: mseData,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            title: {
+                                text: 'MSE',
+                                display: true
+                            }
+                        },
+                        x: {
+                            type: 'linear',
+                            title: {
+                                text: 'Sample',
+                                display: true
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'MSE Distribution',
+                            color: '#FFFFFF',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            })
+
         } else {
 
         }
@@ -132,16 +219,22 @@ function showResults(data) {
     resultsSection.style.display = 'block';
     resultsSection.scrollIntoView({ behavior: 'smooth' });
 
-    function getHealthClass(healthScore) {
+function getHealthClass(healthScore) {
         if (healthScore >= 70) return 'Health-Good';
         if (healthScore >= 40) return 'Health-Moderate';
         if (healthScore >= 20) return 'Health-Low';
         return 'Health-Critical';
     }
-    
-    // Show results section
-    resultsSection.style.display = 'block';
-    resultsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function getStatusColor(status) {
+    switch(status.toLowerCase()) {
+        case 'health-good': return '#28a745';
+        case 'health-moderate': return '#ffc107';
+        case 'health-low': return '#ff851b';
+        case 'health-critical': return '#dc3545';
+        default: return '#5B85AA';
+    }
 }
 
 function showError(message = null) {

@@ -381,3 +381,33 @@ li .link {
     flex-direction: column;
     justify-content: right;
 }
+
+.chart-toggle-button {
+    align-self: center;
+    padding: var(--space-md);
+    max-width: 225px;
+    background-color: var(--color-background-secondary);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-primary);
+    transition: all 0.3s ease;
+}
+
+.chart-toggle-button:hover {
+    align-self: center;
+    padding: var(--space-md);
+    max-width: 225px;
+    background-color: var(--color-background-card);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-primary);
+}
+
+.chart-hidden {
+    display: None;
+}
+
+.chart-shown {
+    display: flex;
+    flex-direction: column;
+}
