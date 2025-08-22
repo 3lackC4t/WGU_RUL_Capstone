@@ -9,35 +9,133 @@ const submitLoading = document.querySelector('.submit-loading');
 let l10FormAdvanced = false;
 let vibPrediction = null;
 
+function createNominalDegradationData() {
+    const points = 100;
+    const labels = [];
+    const values = [];
+    
+    for (let i = 0; i <= points; i++) {
+        labels.push(i);
+        // Exponential degradation curve
+        values.push((1 - (i / 100) ** 2) * 100);
+    }
+    
+    return { labels, values };
+}
+
+function createActualHealthData(currentHealth) {
+    const points = 100;
+    const data = [];
+    
+    for (let i = 0; i <= points; i++) {
+        // Simulate degradation with some noise
+        const base = currentHealth;
+        const degradation = (i / points) * (100 - base);
+        const noise = Math.sin(i / 10) * 3;
+        data.push(Math.max(0, Math.min(100, base - degradation + noise)));
+    }
+    
+    return data;
+}
+
 function showResults(data) {
     // Hide error section
     errorSection.style.display = 'none';
     resultsSection.innerHTML = '';
 
+    const rawMse = data['mse-raw']
+    const mse = data['mse']
+
     Object.entries(data).forEach(([bearingName, bearingObject]) => {
+        
         const bearingData = data[bearingName]
-
         const bearingStatus = getHealthClass(bearingData.health_score);
-
         const bearingCard = document.createElement('div')
-        bearingCard.className = 'bearing-card'
-        bearingCard.innerHTML = `
-            <h3>${bearingName.replace('_', ' ').toUpperCase()}</h3>
-            <div class="bearing-metrics">
-                <p>Health Score: <span class="health-score">${bearingData.health_score}</span></p>
-                <p>Status: <span class="bearing-status">${bearingStatus}</span></p>
-            </div>
-        `;
+        
+        if (bearingName.startsWith("bearing_")) {
+            const healthChartElement = document.createElement('canvas')
+            healthChartElement.id = `health-chart-${bearingName}`;
+            healthChartElement.style.maxHeight = '300px';
 
-        if (bearingName != 'mse') {
+
+
+            bearingCard.className = 'bearing-card'
+            bearingCard.innerHTML = `
+                <h3>${bearingName.replace('_', ' ').toUpperCase()}</h3>
+                <div class="bearing-metrics">
+                    <p>Health Score: <span class="health-score">${bearingData.health_score}</span></p>
+                    <p>Status: <span class="bearing-status">${bearingStatus}</span></p>
+                </div>
+            `;
+
+            bearingCard.appendChild(healthChartElement)
             resultsSection.appendChild(bearingCard)
+
+            let context = healthChartElement.getContext('2d');
+            const degradationData = createNominalDegradationData()
+
+            let actualHealthXValue = Math.sqrt(1 - (bearingData.health_score / 100)) * 100
+
+            let healthChart = new Chart(context, {
+                type: 'line',
+                data: {
+                    labels: degradationData.labels,
+                    datasets: [
+                        {
+                            label: 'Theoretical Degradation',
+                            data: degradationData.values,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            fill: true,
+                            tension: 0.3 
+                        },
+                        {
+                            label: 'Current Status',
+                            data: [{x: actualHealthXValue, y: [bearingData.health_score]}],  // Single point
+                            borderColor: '#F46036',
+                            backgroundColor: '#F46036',
+                            pointRadius: 8,
+                            pointHoverRadius: 10,
+                            fill: false,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,  // ← Fixed typo
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Health Score (%)'
+                            }
+                        },
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Life Percentage (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+
         }
     })
 
+    resultsSection.style.display = 'block';
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+
     function getHealthClass(healthScore) {
         if (healthScore >= 70) return 'Health-Good';
-        if (healthScore >= 50) return 'Health-Moderate';
-        if (healthScore >= 30) return 'Health-Low';
+        if (healthScore >= 40) return 'Health-Moderate';
+        if (healthScore >= 20) return 'Health-Low';
         return 'Health-Critical';
     }
     

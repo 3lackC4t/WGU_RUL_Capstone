@@ -5,6 +5,7 @@ from flask import Flask, jsonify, redirect, request, render_template
 from werkzeug.utils import secure_filename
 from models.bearing_preprocessor import NASABearingPreprocessor
 from models.autoencoder import Autoencoder
+import matplotlib.pyplot as plt
 
 BASE_PATH = Path(__file__).parent.absolute()
 BEARING_DATA_PATH = BASE_PATH / "bearing_data"
@@ -35,6 +36,7 @@ def model_init() -> None:
         overlap=0.5,
         scaler_type='standard',
         health_threshold=0.6,
+        proportion=0.1,
         extract_features=True
     )
 
@@ -49,7 +51,7 @@ def model_init() -> None:
         input_dim = preprocessor.get_feature_dim()
         autoencoder = Autoencoder(
             input_dim=input_dim,
-            epochs=200,
+            epochs=100,
             batch_size=32
         )
 
@@ -67,8 +69,7 @@ def model_init() -> None:
 
         
         healthy_data, degraded_data, metadata = preprocessor.process_multiple_tests(
-            test_paths,
-            sample_proportion=1.0
+            test_paths
         )
         print("="*60)
         print(f"\nHealthy Data Shape: {healthy_data.shape}\nDegraded Data Shape: {degraded_data.shape}\n")
@@ -127,14 +128,16 @@ def handle_input(input_file: Path) -> Dict['str', float]:
         reconstruction = autoencoder.predict_on_input(processed_data)
 
         mse = preprocessor.get_error_mse(processed_data, reconstruction)
+        result['mse-raw'] = list(mse)
         result['mse'] = float(np.mean(mse))
 
         if preprocessor.reference_threshold is not None:
+
             anomalies = mse > preprocessor.reference_threshold
             rate = float(np.mean(anomalies) * 100)
             result[bearing_name]['anomaly_rate'] = rate
             print(f"    Anomaly rate: {rate:.1f}%")
-
+            
             health_score = float(np.mean((np.clip(100 * (1 - mse / preprocessor.reference_threshold), 0, 100))))
             result[bearing_name]['health_score'] = health_score
             print(f"    Average health: {np.mean(health_score):.1f}%")
@@ -149,9 +152,11 @@ autoencoder, preprocessor, reference_data = model_init()
 def data_input():
     return render_template('data_input.html')
 
+
 @app.route('/about', methods=['GET'])
 def about():
     return render_template('about.html')
+
 
 @app.route('/api/input', methods=['POST', 'GET'])
 def predict():

@@ -14,11 +14,13 @@ class NASABearingPreprocessor:
         overlap: float = 0.5,
         scaler_type: str = 'standard',
         health_threshold: float = 0.6,
+        proportion: float = 0.1,
         extract_features: bool = True
     ):
         self.window_size = window_size
         self.overlap = overlap
         self.stride = int(window_size * (1 - overlap))
+        self.proportion = proportion
         self.scalar_type = scaler_type
         self.health_threshold = health_threshold
         self.reference_threshold = None
@@ -318,15 +320,14 @@ class NASABearingPreprocessor:
             self,
             test_path: Path,
             test_num: int,
-            sample_proportion: float = 0.5,
             specific_bearings: List[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray, Dict]:
         
         files = self.create_file_list(test_path)
         total_files = len(files)
 
-        if sample_proportion < 1.0:
-            n_samples = max(1, int(total_files * sample_proportion))
+        if self.proportion < 1.0:
+            n_samples = max(1, int(total_files * self.proportion))
             sample_indices = np.linspace(0, total_files - 1, n_samples).astype(int)
         else:
             n_samples = total_files
@@ -350,37 +351,35 @@ class NASABearingPreprocessor:
             if idx % 10 == 0:
                 print(f"    Processing file {file_idx}/{n_samples}")
 
-                file_path = files[file_idx]
-                processed_data, degradation = self.process_bearing_file(
-                    file_path, test_num, file_idx, total_files
-                )
+            file_path = files[file_idx]
+            processed_data, degradation = self.process_bearing_file(
+                file_path, test_num, file_idx, total_files
+            )
 
-                for bearing_name, sensors in processed_data.items():
-                    if specific_bearings and bearing_name not in specific_bearings:
-                        continue
+            for bearing_name, sensors in processed_data.items():
+                if specific_bearings and bearing_name not in specific_bearings:
+                    continue
 
-                    for sensor_name, features in sensors.items():
-                        if degradation <= self.health_threshold:
-                            healthy_data.extend(features)
-                            metadata['healthy_samples'] += len(features)
-                        else:
-                            degraded_data.extend(features)
-                            metadata['degraded_samples'] += len(features)
+                for sensor_name, features in sensors.items():
+                    if degradation >= self.health_threshold:
+                        healthy_data.extend(features)
+                        metadata['healthy_samples'] += len(features)
+                    else:
+                        degraded_data.extend(features)
+                        metadata['degraded_samples'] += len(features)
 
-                healthy_array = np.array(healthy_data)
-                degraded_array = np.array(degraded_data)
+        healthy_array = np.array(healthy_data)
+        degraded_array = np.array(degraded_data)
 
-                print(f"    Healthy samples: {len(healthy_array)}, Degraded samples: {len(degraded_array)}")
+        print(f"    Healthy samples: {len(healthy_array)}, Degraded samples: {len(degraded_array)}")
 
-                return healthy_array, degraded_array, metadata
+        return healthy_array, degraded_array, metadata
             
     def process_multiple_tests(
         self,
         test_paths: List[Tuple[Path, int]],
-        sample_proportion: float = 0.5
     ) -> Tuple[np.ndarray, np.ndarray, List[Dict]]:
 
-        print("Called self.process_multiple_tests") 
         all_healthy = []
         all_degraded = []
         all_metadata = []
@@ -388,7 +387,7 @@ class NASABearingPreprocessor:
         for test_path, test_num in test_paths:
             print(f"\nProcessing Test {test_num}")
             healthy, degraded, metadata = self.process_test_data(
-                test_path, test_num, sample_proportion
+                test_path, test_num
             )
             
             all_healthy.append(healthy)
@@ -488,7 +487,7 @@ class NASABearingPreprocessor:
         print(f"Preprocessor loaded from {file_path}")
 
     def load_data(self, file_path) -> np.ndarray:
-        reference_mse =  np.load(file_path)
+        reference_mse = np.load(file_path)
         self.calculate_threshold(reference_mse)
     
     def get_error_mse(self, input_a: np.ndarray, input_b: np.ndarray) -> np.ndarray:
