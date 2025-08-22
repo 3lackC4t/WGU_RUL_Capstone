@@ -5,9 +5,32 @@ const resultsSection = document.getElementById('results-section');
 const errorSection = document.getElementById('error-section');
 const submitText = document.querySelector('.submit-text');
 const submitLoading = document.querySelector('.submit-loading');
+const rpm = document.getElementById('bearing-rpm').value;
 
 let l10FormAdvanced = false;
 let vibPrediction = null;
+
+function calculateRemainingLife(L10, health_score) {
+   
+    // Converitng to Hours
+    RUL = (L10 * health_score) * (1 / rpm) * (1 / 60)
+    
+    return Math.round(RUL)
+}
+
+function calculateL10Advanced() {
+    let L10 = null; 
+    if (l10FormAdvanced) {
+        const dynamicLoadRating = document.getElementById('basic-rating').value;
+        const equivalentLoad = document.getElementById('equivalent-load').value;
+        const loadExponent = document.getElementById('load-exponent').value;
+
+        L10 = (1e6 / 60 * rpm) * ((dynamicLoadRating / equivalentLoad) ** loadExponent)
+    } else {
+        L10 = document.getElementById('vib-life-span').value
+    }
+        return L10
+}
 
 function createNominalDegradationData() {
     const points = 100;
@@ -66,7 +89,15 @@ function showResults(data) {
         const bearingData = data[bearingName]
         const bearingStatus = getHealthClass(bearingData.health_score);
         const healthColor = getStatusColor(bearingStatus)
+        const L10Value = calculateL10Advanced()
         const bearingCard = document.createElement('div')
+
+        const summaryCard = document.createElement('div')
+        summaryCard.classList.add('container')
+        summaryCard.innerHTML = `
+            <h3>Summary</h3>
+            <p>Total MSE: ${mse}</p>
+        `
         
         if (bearingName.startsWith("bearing_")) {
             const healthChartElement = document.createElement('canvas');
@@ -81,13 +112,12 @@ function showResults(data) {
             bearingCard.innerHTML = `
                 <h3>${bearingName.replace('_', ' ').toUpperCase()}</h3>
                 <div class="bearing-metrics">
-                    <p>Health Score: <span class="health-score">${Number.parseFloat(bearingData.health_score).toFixed(2)}</span>%</p>
+                    <p>Health Score: <span class="health-score">${Math.round(bearingData.health_score)}</span>%</p>
                     <p>Status: <span class="bearing-status" style="color: ${healthColor}">${bearingStatus}</span></p>
+                    <p>RUL: ${calculateRemainingLife(L10Value, bearingData.health_score / 100)} Hours remaining</p>
                 </div>
                 <button class="chart-toggle-button" id="toggle-chart-${bearingName}">Show Charts</button>
             `;
-
-
 
             const chartContainer = document.createElement('div')
 
