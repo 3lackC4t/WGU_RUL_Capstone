@@ -13,8 +13,8 @@ class NASABearingPreprocessor:
         self, window_size: int = 2048, 
         overlap: float = 0.5,
         scaler_type: str = 'standard',
-        health_threshold: float = 0.6,
-        proportion: float = 0.1,
+        health_threshold: float = 0.7,
+        proportion: float = 0.3,
         extract_features: bool = True
     ):
         self.window_size = window_size
@@ -24,6 +24,8 @@ class NASABearingPreprocessor:
         self.scalar_type = scaler_type
         self.health_threshold = health_threshold
         self.reference_threshold = None
+        self.reference_mean = None
+        self.reference_std = None
         self.extract_features = extract_features
 
         self.scalar = self._get_scalar(scaler_type)
@@ -336,7 +338,6 @@ class NASABearingPreprocessor:
         print(f"Processing test {test_num}: {n_samples}/{total_files} files")
 
         healthy_data = []
-        degraded_data = []
 
         metadata = {
             'test_num': test_num,
@@ -344,36 +345,38 @@ class NASABearingPreprocessor:
             'sampled_files': n_samples,
             'bearings_processed': specific_bearings or 'all',
             'healthy_samples': 0,
-            'degraded_samples': 0
         }
 
         for idx, file_idx in enumerate(sample_indices):
             if idx % 10 == 0:
-                print(f"    Processing file {file_idx}/{n_samples}")
+                print(f"    Processing file {idx + 1}/{n_samples} (file index: {file_idx})")
 
             file_path = files[file_idx]
             processed_data, degradation = self.process_bearing_file(
                 file_path, test_num, file_idx, total_files
             )
 
-            for bearing_name, sensors in processed_data.items():
-                if specific_bearings and bearing_name not in specific_bearings:
-                    continue
+            print(f"        Degradation: {degradation}")
 
-                for sensor_name, features in sensors.items():
-                    if degradation >= self.health_threshold:
+            if degradation >= self.health_threshold:
+                for bearing_name, sensors in processed_data.items():
+                    if specific_bearings and bearing_name not in specific_bearings:
+                        continue
+
+                    for sensor_name, features in sensors.items():
                         healthy_data.extend(features)
-                        metadata['healthy_samples'] += len(features)
-                    else:
-                        degraded_data.extend(features)
-                        metadata['degraded_samples'] += len(features)
+                        
+                metadata['healthy_samples'] += len(features)
+            else:
+                print(f"    Degradation detected at file {file_idx} ({idx + 1}/{n_samples}), stopping")
+                metadata['files_processed'] = idx
+                break
 
         healthy_array = np.array(healthy_data)
-        degraded_array = np.array(degraded_data)
 
-        print(f"    Healthy samples: {len(healthy_array)}, Degraded samples: {len(degraded_array)}")
+        print(f"    Healthy samples: {len(healthy_array)}")
 
-        return healthy_array, degraded_array, metadata
+        return healthy_array, metadata
             
     def process_multiple_tests(
         self,
@@ -381,27 +384,23 @@ class NASABearingPreprocessor:
     ) -> Tuple[np.ndarray, np.ndarray, List[Dict]]:
 
         all_healthy = []
-        all_degraded = []
         all_metadata = []
         
         for test_path, test_num in test_paths:
             print(f"\nProcessing Test {test_num}")
-            healthy, degraded, metadata = self.process_test_data(
+            healthy, metadata = self.process_test_data(
                 test_path, test_num
             )
             
             all_healthy.append(healthy)
-            all_degraded.append(degraded)
             all_metadata.append(metadata)
         
         # Combine all data
         combined_healthy = np.vstack(all_healthy) if all_healthy else np.array([])
-        combined_degraded = np.vstack(all_degraded) if all_degraded else np.array([])
         
         print(f"\nTotal healthy samples: {len(combined_healthy)}")
-        print(f"Total degraded samples: {len(combined_degraded)}")
         
-        return combined_healthy, combined_degraded, all_metadata
+        return combined_healthy, all_metadata
             
     def fit(self, data: np.ndarray):
         self.scalar.fit(data)
@@ -459,6 +458,8 @@ class NASABearingPreprocessor:
             'health_threshold': self.health_threshold,
             'extract_features': self.extract_features,
             'reference_threshold': self.reference_threshold,
+            'reference_mean': self.reference_mean,
+            'reference_std': self.reference_std,
             'config': self.config
         }
 
@@ -482,6 +483,8 @@ class NASABearingPreprocessor:
         self.health_threshold = state['health_threshold']
         self.extract_features = state['extract_features']
         self.reference_threshold = state['reference_threshold']
+        self.reference_mean = state['reference_mean']
+        self.reference_std = state['reference_std']
         self.config = state['config']
 
         print(f"Preprocessor loaded from {file_path}")
@@ -494,4 +497,19 @@ class NASABearingPreprocessor:
         return np.mean((input_a - input_b) ** 2, axis=1)
 
     def calculate_threshold(self, reference_mse) -> np.ndarray:
-        self.reference_threshold = np.percentile(reference_mse, 95) 
+        self.reference_threshold = np.percentile(reference_mse, 99) 
+        self.reference_mean = np.mean(reference_mse)
+        self.reference_std = np.std(reference_mse)
+        print(f"Threshold: {self.reference_threshold:.6f}, Mean: {self.reference_mean:.6f}, STD: {self.reference_std:.6f}")
+
+    def calculate_health_score(self, mse: np.ndarray) -> float:
+        if hasattr(self, 'reference_mean') and hasattr(self, 'reference_std'):
+            z_scores = (mse - self.reference_mean) / (self.reference_std + 1e-8)
+
+            z_scores = np.clip(z_scores, -3, 10)
+
+            health = 100 * np.exp(-z_scores / 2)
+
+            return np.clip(health, 0, 100)
+        else:
+            return 100 * np.clip(1 - mse / (self.reference_threshold * 2), 0, 1)

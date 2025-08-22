@@ -35,8 +35,8 @@ def model_init() -> None:
         window_size=2048,
         overlap=0.5,
         scaler_type='standard',
-        health_threshold=0.6,
-        proportion=0.1,
+        health_threshold=0.7,
+        proportion=0.3,
         extract_features=True
     )
 
@@ -64,16 +64,17 @@ def model_init() -> None:
 
         print("Models loaded Succesfully")
 
+        return autoencoder, preprocessor
+
     else:
         print("Training new models...")
 
         
-        healthy_data, degraded_data, metadata = preprocessor.process_multiple_tests(
+        healthy_data, metadata = preprocessor.process_multiple_tests(
             test_paths
         )
         print("="*60)
-        print(f"\nHealthy Data Shape: {healthy_data.shape}\nDegraded Data Shape: {degraded_data.shape}\n")
-        print(f"Degraded Data Shape: {degraded_data.shape}\n")
+        print(f"\nHealthy Data Shape: {healthy_data.shape}\n")
         print("="*60)
 
         if healthy_data.shape[1] > 0:
@@ -81,36 +82,31 @@ def model_init() -> None:
             print(f"\nScaled healthy data shape: {healthy_scaled.shape}")
             print(f"Feature dimension: {preprocessor.get_feature_dim()}")
 
-        if degraded_data.shape[1] > 0:
-            degraded_scaled = preprocessor.transform(degraded_data)
-            print(f"Scaled degraded data shape: {degraded_scaled.shape}")
+            print(f"Creating Autoencoder")
+            autoencoder = Autoencoder(
+                input_dim=healthy_scaled.shape[1],
+                epochs=100,
+                batch_size=32
+            ) 
 
-        print(f"Creating Autoencoder")
-        autoencoder = Autoencoder(
-            input_dim=healthy_scaled.shape[1],
-            epochs=100,
-            batch_size=32
-        ) 
+            autoencoder.build_model()
+            model_history = autoencoder.fit(healthy_scaled)
 
-        autoencoder.build_model()
-        model_history = autoencoder.fit(healthy_scaled)
+            print(f"Saving autoencoder to {AUTOENCODER_PATH.as_posix()}")
+            MODEL_DATA_PATH.mkdir(parents=True, exist_ok=True)
+            autoencoder.save_model(AUTOENCODER_PATH)
 
-        print(f"Saving autoencoder to {AUTOENCODER_PATH.as_posix()}")
-        MODEL_DATA_PATH.mkdir(parents=True, exist_ok=True)
-        autoencoder.save_model(AUTOENCODER_PATH)
+            print(f"Calculating reference data and threshold")
+            reference_data = autoencoder.predict_on_input(healthy_scaled)
+            reference_mse = preprocessor.get_error_mse(healthy_scaled, reference_data)
+            preprocessor.calculate_threshold(reference_mse)
+            preprocessor.save_preprocessor(PREPROCESSOR_PATH)
 
-        print(f"Calculating reference data and threshold")
-        reference_data = autoencoder.predict_on_input(healthy_scaled)
-        reference_mse = preprocessor.get_error_mse(healthy_scaled, reference_data)
-        preprocessor.calculate_threshold(reference_mse)
-        preprocessor.save_preprocessor(PREPROCESSOR_PATH)
+            preprocessor.save_data(REFERENCE_DATA_PATH, reference_mse)
 
-        preprocessor.save_data(REFERENCE_DATA_PATH, reference_mse)
-        reference_data = reference_mse
+            print("Models saved succesfully!")
 
-        print("Models saved succesfully!")
-
-    return autoencoder, preprocessor, reference_data
+            return autoencoder, preprocessor
 
 
 def handle_input(input_file: Path) -> Dict['str', float]:
@@ -124,28 +120,44 @@ def handle_input(input_file: Path) -> Dict['str', float]:
         result[bearing_name] = {}
 
         processed_data = processed_file[bearing_name]
-
         reconstruction = autoencoder.predict_on_input(processed_data)
 
         mse = preprocessor.get_error_mse(processed_data, reconstruction)
-        result['mse-raw'] = list(mse)
-        result['mse'] = float(np.mean(mse))
+        result[bearing_name]['mse_raw'] = list(mse)
+        result[bearing_name]['mse_mean'] = float(np.mean(mse))
+        result[bearing_name]['mse_max'] = float(np.max(mse))
 
         if preprocessor.reference_threshold is not None:
-
+            # Detect anomalies
             anomalies = mse > preprocessor.reference_threshold
             rate = float(np.mean(anomalies) * 100)
             result[bearing_name]['anomaly_rate'] = rate
             print(f"    Anomaly rate: {rate:.1f}%")
-            
-            health_score = float(np.mean((np.clip(100 * (1 - mse / preprocessor.reference_threshold), 0, 100))))
+
+            # Health score 
+            health_score = preprocessor.calculate_health_score(mse)
             result[bearing_name]['health_score'] = health_score
             print(f"    Average health: {np.mean(health_score):.1f}%")
 
+            health_status = get_bearing_status(mse, preprocessor)
+            result[bearing_name]['health_status'] = health_status
+
     return result
 
+def get_bearing_status(mse: np.ndarray, preprocesser: NASABearingPreprocessor) -> str:
+    mean_mse = np.mean(mse)
 
-autoencoder, preprocessor, reference_data = model_init()
+    if mean_mse < preprocesser.reference_mean + preprocesser.reference_std:
+        return 'Healthy'
+    elif mean_mse < preprocesser.reference_mean + 2 * preprocesser.reference_std:
+        return 'Warning'
+    elif mean_mse < preprocesser.reference_threshold:
+        return 'Degraded'
+    else:
+        return 'Critical'
+
+
+autoencoder, preprocessor = model_init()
 
 
 @app.route('/', methods=['GET', 'POST'])
