@@ -366,9 +366,15 @@ vibDataForm.addEventListener('submit', async (event) => {
 
     const formData = new FormData(event.target);
 
+    // Fetch from API, API key is hardcoded and placeholder for security
+    // during testing. 
     try {
         const response = await fetch('/api/input', {
             method: 'POST',
+            headers: {
+                'X-API-Key': 'wgu-capstone-2025',
+                'Content-Type': 'application/json'
+            },
             body: formData
         });
 

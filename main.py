@@ -1,5 +1,6 @@
 import numpy as np
 from pathlib import Path
+from functools import wraps
 from typing import Dict
 from flask import Flask, jsonify, redirect, request, render_template
 from werkzeug.utils import secure_filename
@@ -18,6 +19,7 @@ PREPROCESSOR_PATH = MODEL_DATA_PATH / 'preprocessor.pkl'
 HEALTHY_TEST_DATA = BEARING_DATA_PATH / "1st_test" / "1st_test" / "2003.10.22.12.06.24"
 DEGRADED_TEST_DATA = BEARING_DATA_PATH / "1st_test" / "1st_test" / "2003.11.24.20.47.32" 
 
+API_KEY = 'wgu-capstone-2025'
 
 test_paths = [
     (BEARING_DATA_PATH / "1st_test" / "1st_test", 1),
@@ -27,6 +29,17 @@ test_paths = [
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER.as_posix()
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.headers.get("X-API-Key") != API_KEY:
+            return jsonify({'error': 'Invalid API Key'}), 401
+        
+        return f(*args, **kwargs)
+
+    return decorated_function
+
 
 def model_init() -> None:
 
@@ -148,6 +161,7 @@ def handle_input(input_file: Path) -> Dict['str', float]:
 
     return result
 
+
 def get_bearing_status(mse: np.ndarray, preprocesser: NASABearingPreprocessor) -> str:
     mean_mse = np.mean(mse)
 
@@ -175,6 +189,7 @@ def about():
 
 
 @app.route('/api/input', methods=['POST', 'GET'])
+@require_api_key
 def predict():
     if request.method == 'POST':
         print("POST Detected")
