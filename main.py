@@ -34,8 +34,9 @@ def require_api_key(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if request.headers.get("X-API-Key") != API_KEY:
+            print("Key not found")
             return jsonify({'error': 'Invalid API Key'}), 401
-        
+        print(f"Key found: {request.headers.get('X-API-Key')}") 
         return f(*args, **kwargs)
 
     return decorated_function
@@ -49,7 +50,7 @@ def model_init() -> None:
         overlap=0.5,
         scaler_type='standard',
         health_threshold=0.7,
-        proportion=0.3,
+        proportion=1.0,
         extract_features=True
     )
 

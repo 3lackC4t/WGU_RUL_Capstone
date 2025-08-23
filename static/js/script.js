@@ -13,7 +13,7 @@ let vibPrediction = null;
 function calculateRemainingLife(L10, health_score) {
    
     // Converitng to Hours
-    RUL = (L10 * health_score) * (1 / rpm) * (1 / 60)
+    RUL = (L10 * health_score) * (1e6 / (60 * rpm))
     
     return Math.round(RUL)
 }
@@ -373,7 +373,6 @@ vibDataForm.addEventListener('submit', async (event) => {
             method: 'POST',
             headers: {
                 'X-API-Key': 'wgu-capstone-2025',
-                'Content-Type': 'application/json'
             },
             body: formData
         });
