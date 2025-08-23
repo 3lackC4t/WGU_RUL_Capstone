@@ -8,6 +8,7 @@ from models.bearing_preprocessor import NASABearingPreprocessor
 from models.autoencoder import Autoencoder
 import matplotlib.pyplot as plt
 
+# Basic global settings for filepaths and whatnot
 BASE_PATH = Path(__file__).parent.absolute()
 BEARING_DATA_PATH = BASE_PATH / "bearing_data"
 MODEL_DATA_PATH = BASE_PATH / "model_data"
@@ -21,6 +22,7 @@ DEGRADED_TEST_DATA = BEARING_DATA_PATH / "1st_test" / "1st_test" / "2003.11.24.2
 
 API_KEY = 'wgu-capstone-2025'
 
+# For initial training.
 test_paths = [
     (BEARING_DATA_PATH / "1st_test" / "1st_test", 1),
     (BEARING_DATA_PATH / "2nd_test" / "2nd_test", 2),
@@ -30,6 +32,8 @@ test_paths = [
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER.as_posix()
 
+# For security demonstration. API is currently hard coded but in order to acheive actual API security a key 
+# distribution system would be used.
 def require_api_key(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -41,7 +45,7 @@ def require_api_key(f):
 
     return decorated_function
 
-
+# Either loads or trains the models
 def model_init() -> None:
 
     print("Initializing preprocessor")
@@ -122,7 +126,8 @@ def model_init() -> None:
 
             return autoencoder, preprocessor
 
-
+# Takes input data from the front end, used the autoencoder to predict on it
+# and the returns a jsonified response with relevant information
 def handle_input(input_file: Path) -> Dict['str', float]:
     print("Calculating bearing health")
     processed_file = preprocessor.process_input_file(input_file)
@@ -162,7 +167,7 @@ def handle_input(input_file: Path) -> Dict['str', float]:
 
     return result
 
-
+# helper function for returning string representing bearing status
 def get_bearing_status(mse: np.ndarray, preprocesser: NASABearingPreprocessor) -> str:
     mean_mse = np.mean(mse)
 
@@ -178,17 +183,17 @@ def get_bearing_status(mse: np.ndarray, preprocesser: NASABearingPreprocessor) -
 
 autoencoder, preprocessor = model_init()
 
-
+# Directs you to the data input page
 @app.route('/', methods=['GET', 'POST'])
 def data_input():
     return render_template('data_input.html')
 
-
+# About page for information on the model
 @app.route('/about', methods=['GET'])
 def about():
     return render_template('about.html')
 
-
+# The analysis tool
 @app.route('/api/input', methods=['POST', 'GET'])
 @require_api_key
 def predict():

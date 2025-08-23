@@ -12,7 +12,7 @@ let vibPrediction = null;
 
 function calculateRemainingLife(L10, health_score) {
    
-    // Converitng to Hours
+    // Converting to Hours
     RUL = (L10 * health_score) * (1e6 / (60 * rpm))
     
     return Math.round(RUL)
@@ -84,6 +84,9 @@ function showResults(data) {
     const rawMse = data['mse_raw']
     const mse = data['mse']
 
+    // For each of the bearings in the txt file given, extract the bearing data from the json
+    // then create a bearing card, including charts, and then appending that to the results section.
+    // At the end of the function the scroll bar is moved to the location of the first bearing card
     Object.entries(data).forEach(([bearingName, bearingObject]) => {
         
         const bearingData = data[bearingName]
@@ -361,7 +364,7 @@ vibDataForm.addEventListener('submit', async (event) => {
     resultsSection.style.display = 'none';
     errorSection.style.display = 'none';
     
-    // Set loading state
+    // Set the loading state
     setLoadingState(true);
 
     const formData = new FormData(event.target);
@@ -393,7 +396,7 @@ vibDataForm.addEventListener('submit', async (event) => {
 
         if (response.ok) {
             console.log('SUCCESS:', result);
-            // TODO: Needs to be sensor_data
+            // Result contains a list of sensor data, parsed in the handle_input function
             vibPrediction = result;
             showResults(result);
         } else {
