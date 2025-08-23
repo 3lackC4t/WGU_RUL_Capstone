@@ -7,6 +7,8 @@ const submitText = document.querySelector('.submit-text');
 const submitLoading = document.querySelector('.submit-loading');
 const rpm = document.getElementById('bearing-rpm').value;
 
+const maxChartHeight = '300px';
+
 let l10FormAdvanced = false;
 let vibPrediction = null;
 
@@ -81,13 +83,23 @@ function showResults(data) {
     errorSection.style.display = 'none';
     resultsSection.innerHTML = '';
 
-    const rawMse = data['mse_raw']
-    const mse = data['mse']
+    const summaryCard = document.createElement('div');
+    summaryCard.classList.add('bearing-card');
+
+    const healthDoughnutChart = document.createElement('canvas');
+    healthDoughnutChart.id = 'health-doughnut-chart';
+    healthDoughnutChart.style.maxHeight = maxChartHeight;
+
+    summaryCard.appendChild(healthDoughnutChart);
+    resultsSection.appendChild(summaryCard);
+    let doughnutContext = healthDoughnutChart.getContext('2d');
+    let healthScores = [];
 
     // For each of the bearings in the txt file given, extract the bearing data from the json
     // then create a bearing card, including charts, and then appending that to the results section.
     // At the end of the function the scroll bar is moved to the location of the first bearing card
     Object.entries(data).forEach(([bearingName, bearingObject]) => {
+
         
         const bearingData = data[bearingName]
         const bearingStatus = getHealthClass(bearingData.health_score);
@@ -95,21 +107,17 @@ function showResults(data) {
         const L10Value = calculateL10Advanced()
         const bearingCard = document.createElement('div')
 
-        const summaryCard = document.createElement('div')
-        summaryCard.classList.add('container')
-        summaryCard.innerHTML = `
-            <h3>Summary</h3>
-            <p>Total MSE: ${mse}</p>
-        `
-        
+        // We'll need this for later
+        healthScores.push(bearingData.health_score)
+
         if (bearingName.startsWith("bearing_")) {
             const healthChartElement = document.createElement('canvas');
             healthChartElement.id = `health-chart-${bearingName}`;
-            healthChartElement.style.maxHeight = '300px';
+            healthChartElement.style.maxHeight = maxChartHeight;
            
             const mseChartElement = document.createElement('canvas');
             mseChartElement.id = `mse-chart-${bearingName}`;
-            mseChartElement.style.maxHeight = '300px';
+            mseChartElement.style.maxHeight = maxChartHeight;
 
             bearingCard.className = 'bearing-card'
             bearingCard.innerHTML = `
@@ -244,10 +252,46 @@ function showResults(data) {
                 }
             })
 
-        } else {
-
         }
     })
+
+    let sumHealth = healthScores.reduce((total, current) => {
+        return total + current;
+    }, 0);
+
+    let averageHealth = sumHealth / healthScores.length;
+    let healthLost = 100 - averageHealth;
+
+    let overallBearingHealth = getHealthClass(averageHealth);
+
+    let doughnutChart = new Chart(doughnutContext, {
+        type: 'doughnut',
+        data: {
+            labels: ['Average Health Remaining', 'Average Health Consumed'],
+            datasets: [
+            {
+                label: 'Average Health',
+                data: [averageHealth, healthLost],
+                borderColor: ['#28a745', '#F46036'],
+                backgroundColor: ['#28a745','#F46036'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+
+    const overallStatus = document.createElement('h3')
+    overallStatus.style.padding = '10px';
+    overallStatus.textContent = `OVERALL HEALTH: ${overallBearingHealth}`
+    summaryCard.appendChild(overallStatus)
+
 
     resultsSection.style.display = 'block';
     resultsSection.scrollIntoView({ behavior: 'smooth' });
