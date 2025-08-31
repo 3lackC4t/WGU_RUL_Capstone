@@ -6,12 +6,12 @@ from flask import Flask, jsonify, redirect, request, render_template
 from werkzeug.utils import secure_filename
 from models.bearing_preprocessor import NASABearingPreprocessor
 from models.autoencoder import Autoencoder
-import matplotlib.pyplot as plt
 
 # Basic global settings for filepaths and whatnot
 BASE_PATH = Path(__file__).parent.absolute()
 BEARING_DATA_PATH = BASE_PATH / "bearing_data"
 MODEL_DATA_PATH = BASE_PATH / "model_data"
+
 UPLOAD_FOLDER = BEARING_DATA_PATH / "file_data"
 AUTOENCODER_PATH = MODEL_DATA_PATH / "autoencoder.keras"
 REFERENCE_DATA_PATH = MODEL_DATA_PATH / "reference_data.npy"
@@ -29,7 +29,11 @@ test_paths = [
     (BEARING_DATA_PATH / "3rd_test" / "4th_test" / "txt", 3)
 ]
 
-app = Flask(__name__)
+app = Flask(
+    __name__, 
+    static_folder=BASE_PATH / "static", 
+    template_folder=BASE_PATH / "templates"
+)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER.as_posix()
 
 # For security demonstration. API is currently hard coded but in order to acheive actual API security a key 
@@ -220,7 +224,7 @@ def predict():
 
 
 def main() -> None:
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
 
 
 if __name__ == "__main__":
