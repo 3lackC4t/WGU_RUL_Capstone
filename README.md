@@ -4,29 +4,28 @@ Unexpected bearing failures can result in millions of losses per year in lost pr
 
 This model can be used to predict early failure of rotational bearings and can be used to assist in predictive maintenance of such machines.
 
-## Quick Start Guide
+## Running The Application
+### From Docker
+The preffered method of running the bearing RUL predictor is via it's docker file. 
 
-1. Download the following dependencies
-    a. Python 3.13.5 (or later if applicable)
-    b. Most recent version of pip python package installer
-2. Extract the “RUL_WGU” archive to the directory in which the model is intended to be run.
-3. Execute the following command in the root directory of the project in order to activate the virtual environment
-    a. For Windows
-        1. $”.venv/scripts/activate.ps1”
-    b. For Linux/Mac
-        1. source .venv/bin/activate
-4. Execute the following command to download python packages from inside the root directory
-    a. pip install -r requirements.txt
-5. Execute the following to start the server
-    a. python main.py
-6. Open a web browser and navigate to “http://localhost:5000” to access the frontend of the application
-7. Inside of the root project directory there is a folder titled test_data. This contains sampled vibrational data to test the performance of the application.
-8. In the ‘analysis’ page use the GUI to input the desired bearing file
-9. Fill in the L10 value
-10. If desired, open up the “L10 Advanced” section to calculate a custom L10 value
-11. Enter the RPM of the machine the bearings were captured on. For the test data the RPM is 1000RPM
-12. Hit “Analyze”
-13. If desired, explore the about page linked in the top left.
+To do this simply clone the repository, build the image, and run the docker container mapping a local port to 5000 for the container.
+
+```sh
+docker run -p 5000:5000 <container name>
+```
+
+Or, more conveniently, using the docker compose file example below
+
+```yaml
+services:
+  wgurulcapstone:
+    image: wgurulcapstone
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 5000:5000
+```
 
 ## Model Training
 1. If desired the model can be trained again for demonstration
